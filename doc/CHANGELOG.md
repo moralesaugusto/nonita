@@ -2,6 +2,18 @@
 
 Format follows [Keep a Changelog](https://keepachangelog.com/); versions are git tags.
 
+## [0.3] — 2026-10-07
+### Changed
+- **UI redesign (watermelon theme):** rind green, flesh red, seed black on cream; light and dark themes (follows the OS, toggle in the header, remembered per browser).
+- Professional layout: top bar with brand and connection status pill, full-height workspace (conversation list | chat | settings cards) with the message box always visible, proper chat bubbles, empty state, segmented thinking-mode control, SVG icons instead of emoji.
+- Responsive: settings drop below the chat under 1180px; single column under 820px with 44px touch targets and no horizontal scroll.
+- Typography moved from a monospace terminal look to the system UI font stack.
+
+### Added
+- Accessibility: skip link, labelled controls and live regions, visible focus rings, `prefers-reduced-motion`, 4.5:1+ text contrast in both themes.
+- Security headers on every response: Content-Security-Policy (self only), `X-Content-Type-Options`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy`.
+- Favicon (watermelon slice), print stylesheet (chat only), "Danger zone" fold for the history wipe.
+
 ## [0.2] — 2026-10-07
 ### Changed
 - **Gradio removed.** The app is now a FastAPI backend (`toty_webui/server.py`) serving a plain HTML/CSS/JS page (`toty_webui/static/`).

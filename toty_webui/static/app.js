@@ -49,24 +49,27 @@ function renderMessage(m, live) {
   div.className = "msg " + (m.role === "user" ? "user" : "assistant") + (m.error ? " error" : "");
   const who = document.createElement("div");
   who.className = "who";
-  who.textContent = m.role === "user" ? "you" : "assistant";
-  div.appendChild(who);
+  who.textContent = m.role === "user" ? "You" : "Assistant";
+  const bubble = document.createElement("div");
+  bubble.className = "bubble";
   if (m.thinking) {
     const d = document.createElement("details");
     d.className = "thought";
     if (live && !m.thinkingSecs) d.open = true;
-    const s = document.createElement("summary");
-    s.textContent = m.thinkingSecs ? `🤔 Thought for ${m.thinkingSecs.toFixed(1)}s` : "🤔 Thinking…";
-    const body = document.createElement("div");
-    body.className = "md";
-    setMd(body, m.thinking);
-    d.append(s, body);
-    div.appendChild(d);
+    const sm = document.createElement("summary");
+    sm.textContent = m.thinkingSecs ? `Thought for ${m.thinkingSecs.toFixed(1)}s` : "Thinking…";
+    const tb = document.createElement("div");
+    tb.className = "md";
+    setMd(tb, m.thinking);
+    d.append(sm, tb);
+    bubble.appendChild(d);
   }
   const body = document.createElement("div");
   body.className = "md body";
-  setMd(body, m.content);
-  div.appendChild(body);
+  if (live && !m.content && !m.thinking) body.textContent = "…";
+  else setMd(body, m.content);
+  bubble.appendChild(body);
+  div.append(who, bubble);
   if (m.footer) {
     const f = document.createElement("div");
     f.className = "footer";
@@ -75,9 +78,16 @@ function renderMessage(m, live) {
   }
   return div;
 }
+function emptyState() {
+  const d = document.createElement("div");
+  d.className = "empty";
+  d.innerHTML = '<svg class="i"><use href="#i-chat"/></svg><h2>Start a conversation</h2>' +
+    "<p>Pick a model, then type a message below. Attach files or enable web search from the settings panel.</p>";
+  return d;
+}
 function renderChat() {
   const chat = $("chat");
-  chat.replaceChildren(...state.history.map((m) => renderMessage(m, false)));
+  chat.replaceChildren(...(state.history.length ? state.history.map((m) => renderMessage(m, false)) : [emptyState()]));
   chat.scrollTop = chat.scrollHeight;
 }
 function updateLast() {
@@ -97,6 +107,17 @@ function convBar() {
 }
 function resetMetrics() { setMd($("metrics-bar"), state.metricsEmpty); $("debug-panel").textContent = ""; }
 
+function setBadge(text) {
+  const el = $("connection-badge");
+  const t = text || "";
+  el.classList.remove("ok", "bad");
+  if (t.includes("🟢")) el.classList.add("ok");
+  else if (t.includes("🔴")) el.classList.add("bad");
+  const clean = t.replace(/[\u{1F300}-\u{1FAFF}\u2600-\u27BF\uFE0F]/gu, "").replace(/\*\*/g, "").replace(/`/g, "").trim();
+  el.querySelector(".badge-text").textContent = clean;
+  el.title = clean;
+}
+
 // ── connection / models ────────────────────────────────────────────────
 async function refreshModels() {
   try {
@@ -105,7 +126,7 @@ async function refreshModels() {
     dl.replaceChildren(...r.choices.map((c) => { const o = document.createElement("option"); o.value = c; return o; }));
     if (r.selected) $("model-input").value = r.selected;
     setMd($("status-note"), r.note);
-    setMd($("connection-badge"), r.badge);
+    setBadge(r.badge);
   } catch (e) {
     setMd($("status-note"), "Could not refresh: `" + e.message + "`");
   }
@@ -142,6 +163,10 @@ function resetSettings() {
 // ── sessions ───────────────────────────────────────────────────────────
 function renderSessions() {
   const box = $("sessions-list");
+  if (!state.sessions.length) {
+    const p = document.createElement("div"); p.className = "session-empty"; p.textContent = "No saved conversations yet.";
+    box.replaceChildren(p); return;
+  }
   box.replaceChildren(...state.sessions.map((s) => {
     const b = document.createElement("button");
     b.className = "session-item" + (s.id === state.selectedSession ? " selected" : "");
@@ -284,7 +309,7 @@ async function send() {
 
 // ── misc UI ────────────────────────────────────────────────────────────
 function autosize() {
-  const t = $("msg"); t.style.height = "auto"; t.style.height = Math.min(t.scrollHeight, 144) + "px";
+  const t = $("msg"); t.style.height = "auto"; t.style.height = Math.min(t.scrollHeight, 160) + "px"; t.style.overflowY = t.scrollHeight > 160 ? "auto" : "hidden";
 }
 function bindRange(id, outId, fmt) {
   const el = $(id), out = $(outId);
@@ -292,7 +317,25 @@ function bindRange(id, outId, fmt) {
   el.addEventListener("input", upd); upd();
 }
 
+// ── theme (light / dark, remembered per browser) ───────────────────────
+function applyTheme(t) {
+  document.documentElement.dataset.theme = t;
+  $("theme-icon").setAttribute("href", t === "dark" ? "#i-sun" : "#i-moon");
+}
+function initTheme() {
+  let t = null;
+  try { t = localStorage.getItem("toty-webui.theme"); } catch (e) {}
+  if (t !== "light" && t !== "dark") t = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  applyTheme(t);
+  $("theme-toggle").onclick = () => {
+    const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+    applyTheme(next);
+    try { localStorage.setItem("toty-webui.theme", next); } catch (e) {}
+  };
+}
+
 async function init() {
+  initTheme();
   bindRange("temperature", "temperature-val", (v) => Number(v).toFixed(2));
   bindRange("stream-delay", "stream-delay-val");
   bindRange("search-max", "search-max-val");
@@ -309,7 +352,7 @@ async function init() {
   resetMetrics(); renderAttachments(); renderChat();
 
   $("btn-refresh").onclick = refreshModels;
-  $("btn-ping").onclick = async () => { const r = await simple("/api/ping"); setMd($("status-note"), r.note); setMd($("connection-badge"), r.badge); };
+  $("btn-ping").onclick = async () => { const r = await simple("/api/ping"); setMd($("status-note"), r.note); setBadge(r.badge); };
   $("btn-loaded").onclick = async () => setMd($("status-note"), (await simple("/api/loaded")).markdown);
   $("btn-unload").onclick = async () => setMd($("status-note"), (await simple("/api/unload", { model: $("model-input").value || null })).markdown);
   $("btn-unload-all").onclick = async () => setMd($("status-note"), (await simple("/api/unload-all")).markdown);

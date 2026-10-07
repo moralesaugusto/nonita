@@ -29,3 +29,14 @@
 
 ## API summary
 `GET /` · `GET /api/meta` · `GET /api/config` · `POST /api/validate-connection` · `POST /api/models` · `/api/ping` · `/api/server-info` · `/api/model-info` · `/api/loaded` · `/api/unload` · `/api/unload-all` · `POST /api/upload` · `POST /api/chat` · `GET|POST /api/sessions` · `GET|DELETE /api/sessions/{id}` · `GET /api/sessions/{id}/export` · `POST /api/export` · `DELETE /api/sessions?confirm=true`
+
+## v0.3 — watermelon theme, enterprise polish
+
+| Area | Decision | Reason |
+|---|---|---|
+| Palette | Flesh red `#d62839` (primary actions), rind green `#1f7a4d` (accents, header rule, assistant label), seed-black text, cream background; dark theme uses lighter tints (`#ff6b7d`, `#52c68d`) on deep green-black | Watermelon identity with AA contrast in both themes |
+| Theme | CSS custom properties; `data-theme` on `<html>`; default from `prefers-color-scheme`; choice in `localStorage` (`toty-webui.theme`) | No flash-heavy JS, per-user preference |
+| Type & icons | System UI font stack, inline SVG icon sprite | No external font/CDN requests; consistent rendering |
+| Layout | App frame fills the viewport; chat scrolls internally so the composer never leaves the screen; side panels scroll independently | Fixes the v0.2 page overflowing the screen |
+| Security headers | CSP `default-src 'self'` (no inline scripts; inline styles allowed only for markdown output), nosniff, frame deny, no-referrer | Reasonable enterprise baseline for a LAN tool; authentication remains intentionally out of scope |
+| Accessibility | Semantic landmarks, labels, live regions, focus-visible, reduced motion | Enterprise/WCAG expectations |

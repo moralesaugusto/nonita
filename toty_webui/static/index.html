@@ -3,148 +3,196 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
 <title>Toty Web UI</title>
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-<div id="app-shell">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-save" viewBox="0 0 24 24"><path d="M5 4h11l3 3v13H5z"/><path d="M8 4v5h7V4M8 20v-6h8v6"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14.5-4.5L4 8M4 4v4h4M4 13a8 8 0 0 0 14.5 4.5L20 16M20 20v-4h-4"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7 11l5 5 5-5M5 20h14"/></symbol>
+    <symbol id="i-plug" viewBox="0 0 24 24"><path d="M9 3v5M15 3v5M6 8h12v4a6 6 0 0 1-12 0zM12 18v3"/></symbol>
+    <symbol id="i-chip" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></symbol>
+    <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></symbol>
+    <symbol id="i-clip" viewBox="0 0 24 24"><path d="M20 11l-8.5 8.5a5 5 0 0 1-7-7L13 4a3.5 3.5 0 0 1 5 5l-8.5 8.5a2 2 0 0 1-3-3L14 7"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></symbol>
+    <symbol id="i-send" viewBox="0 0 24 24"><path d="M4 12l16-8-6 16-3-7z"/></symbol>
+    <symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M5 19l1.5-1.5M17.5 6.5L19 5"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/></symbol>
+    <symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 4l9 16H3zM12 10v4M12 17v.5"/></symbol>
+    <symbol id="i-bulb" viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></symbol>
+    <symbol id="i-chat" viewBox="0 0 24 24"><path d="M4 5h16v11H9l-5 4z"/></symbol>
+  </defs>
+</svg>
 
-  <!-- Left: sessions rail -->
-  <aside id="sessions-rail" class="panel">
-    <div id="rail-title"><h1>root@toty-web-ui:~</h1><p>// local llm uplink</p></div>
-    <button id="btn-new" class="primary">🆕 New conversation</button>
-    <button id="btn-save">💾 Save to SQLite</button>
-    <div class="note"><b>Recent sessions</b></div>
-    <div id="sessions-list" role="listbox" aria-label="Recent sessions"></div>
-    <button id="btn-refresh-sessions">↺ Refresh list</button>
-    <div class="row">
-      <button id="btn-delete-session">🗑 Delete</button>
-      <button id="btn-export-session">⇩ Export</button>
+<a class="skip" href="#msg">Skip to message box</a>
+
+<div id="app">
+  <header id="app-header">
+    <div class="brand">
+      <img src="/static/favicon.svg" alt="" width="30" height="30">
+      <div class="brand-text"><span class="brand-name">Toty</span><span class="brand-sub">Web UI for Ollama</span></div>
     </div>
-    <hr>
-    <button id="btn-export-txt">⇩ Export current chat</button>
-    <hr>
-    <label class="check"><input type="checkbox" id="wipe-confirm"> Confirm — permanently delete ALL saved conversations</label>
-    <button id="btn-wipe" class="danger">⚠ Wipe history database</button>
-    <div id="history-status" class="note"></div>
-  </aside>
-
-  <!-- Center: chat -->
-  <main id="main-col">
-    <div id="top-bar"><b>Conversation</b><span id="connection-badge" class="md">⚪ <b>Starting…</b></span></div>
-
-    <div id="model-row">
-      <div class="field grow">
-        <label for="model-input">Model</label>
-        <input id="model-input" list="model-list" autocomplete="off" placeholder="Select a pulled model or type a custom name.">
-        <datalist id="model-list"></datalist>
-      </div>
-      <button id="btn-refresh" class="primary">↺ Refresh</button>
+    <div class="header-right">
+      <div id="connection-badge" class="badge" role="status" aria-live="polite"><span class="dot"></span><span class="badge-text">Connecting…</span></div>
+      <button id="theme-toggle" class="icon-btn" type="button" aria-label="Switch colour theme" title="Switch colour theme">
+        <svg class="i"><use id="theme-icon" href="#i-moon"/></svg>
+      </button>
     </div>
+  </header>
 
-    <div id="status-note" class="md"></div>
-
-    <section id="chat-panel" class="panel" aria-live="polite"><div id="chat"></div></section>
-
-    <div id="conv-bar" class="md"></div>
-    <div id="metrics-bar" class="md"></div>
-    <div id="debug-panel" class="md" hidden></div>
-
-    <div id="input-row">
-      <textarea id="msg" rows="1" placeholder="Message… (Enter to send · Shift+Enter for new line)"></textarea>
-      <div id="send-col">
-        <button id="send-btn" class="primary">Send ▶</button>
-        <button id="stop-btn" class="danger" disabled>■ Stop</button>
+  <div id="workspace">
+    <!-- Left: sessions -->
+    <aside id="sessions-rail" class="rail" aria-label="Conversations">
+      <button id="btn-new" class="btn primary block" type="button"><svg class="i"><use href="#i-plus"/></svg>New conversation</button>
+      <div class="section-title">Saved conversations</div>
+      <div id="sessions-list" role="listbox" aria-label="Saved conversations"></div>
+      <div class="btn-row">
+        <button id="btn-save" class="btn" type="button"><svg class="i"><use href="#i-save"/></svg>Save</button>
+        <button id="btn-refresh-sessions" class="btn" type="button"><svg class="i"><use href="#i-refresh"/></svg>Refresh</button>
       </div>
-    </div>
-
-    <div id="footer-row">
-      <button id="btn-clear">🗑 Clear</button>
-      <button id="btn-clear-files">📎 Clear files</button>
-      <button id="btn-example">💡 Example</button>
-    </div>
-  </main>
-
-  <!-- Right: settings -->
-  <aside id="sidebar">
-    <details class="panel">
-      <summary>🔌 Connection</summary>
-      <div class="row">
-        <div class="field grow3"><label for="host-in">Host</label><input id="host-in" placeholder="127.0.0.1"></div>
-        <div class="field"><label for="port-in">Port</label><input id="port-in" type="number" min="1" max="65535" step="1"></div>
+      <div class="btn-row">
+        <button id="btn-export-session" class="btn" type="button"><svg class="i"><use href="#i-download"/></svg>Export</button>
+        <button id="btn-delete-session" class="btn" type="button"><svg class="i"><use href="#i-trash"/></svg>Delete</button>
       </div>
-      <div class="row">
-        <button id="btn-save-settings">Save settings</button>
-        <button id="btn-reset-settings">Reset</button>
-        <button id="btn-forget-settings">Forget</button>
-      </div>
-      <div id="settings-status" class="note"></div>
-      <div class="row">
-        <button id="btn-ping">Ping</button>
-        <button id="btn-ollama-info">Server info</button>
-      </div>
-      <div id="ollama-info-panel" class="md info" hidden></div>
-    </details>
+      <button id="btn-export-txt" class="btn block" type="button"><svg class="i"><use href="#i-download"/></svg>Export current chat</button>
+      <details class="danger-zone">
+        <summary>Danger zone</summary>
+        <label class="check"><input type="checkbox" id="wipe-confirm"> I understand this permanently deletes all saved conversations</label>
+        <button id="btn-wipe" class="btn danger block" type="button"><svg class="i"><use href="#i-warn"/></svg>Wipe history database</button>
+      </details>
+      <div id="history-status" class="note" role="status"></div>
+    </aside>
 
-    <details class="panel">
-      <summary>🗂 Memory</summary>
-      <div class="note">Models stay loaded in GPU/RAM after use.</div>
-      <div class="row">
-        <button id="btn-loaded">Show loaded</button>
-        <button id="btn-unload">Unload model</button>
-      </div>
-      <button id="btn-unload-all">Unload all</button>
-      <hr>
-      <div class="note">Inspect context window, quant, and architecture.</div>
-      <button id="btn-model-info">Model info</button>
-      <div id="model-info-panel" class="md info" hidden></div>
-    </details>
-
-    <details class="panel">
-      <summary>⚙️ Generation</summary>
-      <div class="field"><label for="system-prompt">System prompt</label>
-        <textarea id="system-prompt" rows="3" placeholder="You are a helpful assistant…"></textarea></div>
-      <div class="field"><label for="temperature">Temperature: <span id="temperature-val">0.70</span></label>
-        <input id="temperature" type="range" min="0" max="2" step="0.05" value="0.7"></div>
-      <div class="field"><label for="num-ctx">Context window (num_ctx)</label>
-        <input id="num-ctx" type="number" min="0" max="1048576" step="1" value="0">
-        <small>0 = modelfile default (Ollama falls back to 2,048 if unset).</small></div>
-      <div class="field"><label>Thinking mode</label>
-        <div id="think-mode" class="radios">
-          <label><input type="radio" name="think" value="Off" checked> Off</label>
-          <label><input type="radio" name="think" value="Low"> Low</label>
-          <label><input type="radio" name="think" value="Medium"> Medium</label>
-          <label><input type="radio" name="think" value="High"> High</label>
+    <!-- Center: chat -->
+    <main id="main-col">
+      <div id="model-row">
+        <div class="field grow">
+          <label for="model-input">Model</label>
+          <input id="model-input" list="model-list" autocomplete="off" placeholder="Select a pulled model or type a name">
+          <datalist id="model-list"></datalist>
         </div>
-        <small>Reasoning models only (gpt-oss, deepseek-r1, qwq…). Low/Medium/High on a model without thinking support returns an error. Some models always reason a little even when Off.</small></div>
-      <div class="field"><label for="stream-delay">Stream delay: <span id="stream-delay-val">0</span> ms / chunk</label>
-        <input id="stream-delay" type="range" min="0" max="200" step="5" value="0">
-        <small>Typewriter effect. 0 = full speed.</small></div>
-      <label class="check"><input type="checkbox" id="debug-mode"> Debug mode</label>
-      <small>Show timing breakdown and raw Ollama stats after each reply.</small>
-    </details>
+        <button id="btn-refresh" class="btn" type="button"><svg class="i"><use href="#i-refresh"/></svg>Refresh models</button>
+      </div>
+      <div id="status-note" class="md note" role="status"></div>
 
-    <details class="panel">
-      <summary>📎 Attachments</summary>
-      <input id="file-input" type="file" multiple>
-      <div id="attach-summary" class="md"><i>No files attached.</i></div>
-    </details>
+      <section id="chat-panel" aria-label="Conversation"><div id="chat" aria-live="polite"></div></section>
 
-    <details class="panel">
-      <summary>🔍 Web Search</summary>
-      <label class="check"><input type="checkbox" id="search-enabled"> Enable web search</label>
-      <small>Off by default. Searches DuckDuckGo using your message as the query and feeds the results to the model for that one reply. Results are never saved, exported, or shown in the transcript.</small>
-      <div class="field"><label for="search-max">Max results: <span id="search-max-val">4</span></label>
-        <input id="search-max" type="range" min="1" max="10" step="1" value="4"></div>
-    </details>
-  </aside>
+      <div id="stats">
+        <div id="conv-bar" class="md"></div>
+        <div id="metrics-bar" class="md"></div>
+        <div id="debug-panel" class="md" hidden></div>
+      </div>
+
+      <div id="composer">
+        <textarea id="msg" rows="1" aria-label="Message" placeholder="Message the model…" title="Enter to send, Shift+Enter for a new line"></textarea>
+        <div id="send-col">
+          <button id="send-btn" class="btn primary" type="button"><svg class="i"><use href="#i-send"/></svg>Send</button>
+          <button id="stop-btn" class="btn danger" type="button" disabled><svg class="i"><use href="#i-stop"/></svg>Stop</button>
+        </div>
+      </div>
+      <div id="footer-row">
+        <button id="btn-clear" class="btn small" type="button"><svg class="i"><use href="#i-trash"/></svg>Clear chat</button>
+        <button id="btn-clear-files" class="btn small" type="button"><svg class="i"><use href="#i-clip"/></svg>Clear files</button>
+        <button id="btn-example" class="btn small" type="button"><svg class="i"><use href="#i-bulb"/></svg>Example prompt</button>
+      </div>
+    </main>
+
+    <!-- Right: settings -->
+    <aside id="sidebar" class="rail" aria-label="Settings">
+      <details class="card" open>
+        <summary><svg class="i"><use href="#i-plug"/></svg>Connection</summary>
+        <div class="card-body">
+          <div class="row">
+            <div class="field grow3"><label for="host-in">Host</label><input id="host-in" placeholder="127.0.0.1" autocomplete="off"></div>
+            <div class="field"><label for="port-in">Port</label><input id="port-in" type="number" min="1" max="65535" step="1"></div>
+          </div>
+          <div class="btn-row">
+            <button id="btn-save-settings" class="btn small" type="button">Save</button>
+            <button id="btn-reset-settings" class="btn small" type="button">Reset</button>
+            <button id="btn-forget-settings" class="btn small" type="button">Forget</button>
+          </div>
+          <div id="settings-status" class="note" role="status"></div>
+          <div class="btn-row">
+            <button id="btn-ping" class="btn small" type="button">Ping</button>
+            <button id="btn-ollama-info" class="btn small" type="button">Server info</button>
+          </div>
+          <div id="ollama-info-panel" class="md info" hidden></div>
+        </div>
+      </details>
+
+      <details class="card">
+        <summary><svg class="i"><use href="#i-chip"/></svg>Memory</summary>
+        <div class="card-body">
+          <p class="hint">Models stay loaded in GPU/RAM after use.</p>
+          <div class="btn-row">
+            <button id="btn-loaded" class="btn small" type="button">Show loaded</button>
+            <button id="btn-unload" class="btn small" type="button">Unload model</button>
+          </div>
+          <button id="btn-unload-all" class="btn small block" type="button">Unload all</button>
+          <p class="hint">Inspect context window, quantisation and architecture.</p>
+          <button id="btn-model-info" class="btn small block" type="button">Model info</button>
+          <div id="model-info-panel" class="md info" hidden></div>
+        </div>
+      </details>
+
+      <details class="card">
+        <summary><svg class="i"><use href="#i-sliders"/></svg>Generation</summary>
+        <div class="card-body">
+          <div class="field"><label for="system-prompt">System prompt</label>
+            <textarea id="system-prompt" rows="3" placeholder="You are a helpful assistant…"></textarea></div>
+          <div class="field"><label for="temperature">Temperature <output id="temperature-val">0.70</output></label>
+            <input id="temperature" type="range" min="0" max="2" step="0.05" value="0.7"></div>
+          <div class="field"><label for="num-ctx">Context window (num_ctx)</label>
+            <input id="num-ctx" type="number" min="0" max="1048576" step="1" value="0">
+            <small>0 = modelfile default (Ollama falls back to 2,048 if unset).</small></div>
+          <fieldset class="field"><legend>Thinking mode</legend>
+            <div id="think-mode" class="segmented">
+              <label><input type="radio" name="think" value="Off" checked><span>Off</span></label>
+              <label><input type="radio" name="think" value="Low"><span>Low</span></label>
+              <label><input type="radio" name="think" value="Medium"><span>Med</span></label>
+              <label><input type="radio" name="think" value="High"><span>High</span></label>
+            </div>
+            <small>Reasoning models only (gpt-oss, deepseek-r1, qwq…). Other models return an error for Low/Medium/High.</small></fieldset>
+          <div class="field"><label for="stream-delay">Stream delay <output id="stream-delay-val">0</output> ms/chunk</label>
+            <input id="stream-delay" type="range" min="0" max="200" step="5" value="0"></div>
+          <label class="check"><input type="checkbox" id="debug-mode"> Debug mode</label>
+          <small>Show timing breakdown and raw Ollama stats after each reply.</small>
+        </div>
+      </details>
+
+      <details class="card">
+        <summary><svg class="i"><use href="#i-clip"/></svg>Attachments</summary>
+        <div class="card-body">
+          <input id="file-input" type="file" multiple aria-label="Attach files">
+          <div id="attach-summary" class="md note"></div>
+        </div>
+      </details>
+
+      <details class="card">
+        <summary><svg class="i"><use href="#i-search"/></svg>Web search</summary>
+        <div class="card-body">
+          <label class="check"><input type="checkbox" id="search-enabled"> Enable web search</label>
+          <small>Searches DuckDuckGo with your message and gives the results to the model for that one reply. Results are never saved, exported or shown.</small>
+          <div class="field"><label for="search-max">Max results <output id="search-max-val">4</output></label>
+            <input id="search-max" type="range" min="1" max="10" step="1" value="4"></div>
+        </div>
+      </details>
+    </aside>
+  </div>
+
+  <footer id="app-footer">
+    <span id="app-version">Toty Web UI</span>
+    <span class="sep" aria-hidden="true">·</span>
+    <a id="app-telegram" href="https://t.me/augustmd" target="_blank" rel="noopener noreferrer">Telegram @augustmd</a>
+  </footer>
 </div>
-
-<footer id="app-footer">
-  <span id="app-version">Toty Web UI</span>
-  <span class="sep">·</span>
-  <a id="app-telegram" href="https://t.me/augustmd" target="_blank" rel="noopener">Telegram @augustmd</a>
-</footer>
 
 <script src="/static/vendor/marked.min.js"></script>
 <script src="/static/vendor/purify.min.js"></script>

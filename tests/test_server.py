@@ -19,7 +19,7 @@ def client(tmp_path, monkeypatch):
 
 def test_meta_has_version_and_telegram(client):
     r = client.get("/api/meta").json()
-    assert r["version"] == __version__ == "0.2"
+    assert r["version"] == __version__ == "0.3"
     assert r["telegram"] == "@augustmd" and r["telegram_url"] == "https://t.me/augustmd"
 
 
@@ -28,7 +28,15 @@ def test_index_and_static(client):
     assert 'id="app-version"' in html and "t.me/augustmd" in html and "gradio" not in html.lower()
     assert client.get("/static/app.js").status_code == 200
     css = (STATIC / "style.css").read_text()
-    assert "@media (max-width: 640px)" in css and "min-height: 44px" in css and "overflow-x: hidden" in css
+    assert "@media (max-width: 820px)" in css and "min-height: 44px" in css
+    assert '[data-theme="dark"]' in css and "prefers-reduced-motion" in css
+
+
+def test_security_headers(client):
+    r = client.get("/")
+    assert "frame-ancestors 'none'" in r.headers["content-security-policy"]
+    assert r.headers["x-content-type-options"] == "nosniff"
+    assert client.get("/api/meta").headers["x-frame-options"] == "DENY"
 
 
 def test_validate_connection(client):
