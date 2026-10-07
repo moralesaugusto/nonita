@@ -51,30 +51,40 @@ def env_max_upload_bytes() -> int:
     return int(mb * 1024 * 1024)
 
 
-def gradio_server_port() -> int | None:
-    """If GRADIO_SERVER_PORT is unset, return None so Gradio picks from 7860."""
-    raw = os.environ.get("GRADIO_SERVER_PORT")
-    if raw is None or str(raw).strip() == "":
-        return None
+DEFAULT_SERVER_PORT = 7860
+
+
+def _env_first(*names: str) -> str:
+    for name in names:
+        raw = os.environ.get(name, "").strip()
+        if raw:
+            return raw
+    return ""
+
+
+def server_host() -> str:
+    """Bind address (TOTY_HOST, legacy GRADIO_SERVER_NAME); default 0.0.0.0 (LAN-wide)."""
+    return _env_first("TOTY_HOST", "GRADIO_SERVER_NAME") or "0.0.0.0"
+
+
+def server_port() -> int:
+    """UI port (TOTY_PORT, legacy GRADIO_SERVER_PORT); default 7860."""
+    raw = _env_first("TOTY_PORT", "GRADIO_SERVER_PORT")
     try:
-        return int(raw)
+        value = int(raw)
     except ValueError:
-        return None
+        return DEFAULT_SERVER_PORT
+    return value if 1 <= value <= 65535 else DEFAULT_SERVER_PORT
 
 
 def env_debug_mode() -> bool:
     return os.environ.get("TOTY_DEBUG", "").lower() in ("1", "true", "yes")
 
 
-def ssl_launch_kwargs() -> dict[str, str | bool]:
-    """Enable HTTPS when cert.pem and key.pem exist beside the project root."""
+def ssl_launch_kwargs() -> dict[str, str]:
+    """Enable HTTPS (uvicorn kwargs) when cert.pem and key.pem exist beside the project root."""
     cert = PROJECT_ROOT / "cert.pem"
     key = PROJECT_ROOT / "key.pem"
     if cert.is_file() and key.is_file():
-        verify = os.environ.get("TOTY_SSL_VERIFY", "false").lower() in ("1", "true", "yes")
-        return {
-            "ssl_certfile": str(cert),
-            "ssl_keyfile": str(key),
-            "ssl_verify": verify,
-        }
+        return {"ssl_certfile": str(cert), "ssl_keyfile": str(key)}
     return {}

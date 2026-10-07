@@ -63,7 +63,7 @@ def ingest_upload_paths(
     max_chars_per_file: int = 48_000,
     max_total_chars: int = 120_000,
 ) -> str:
-    """Build a single context block from uploaded file paths (Gradio local paths)."""
+    """Build a single context block from uploaded file paths (local paths)."""
     if not paths:
         return ""
 
@@ -126,7 +126,7 @@ def ingest_upload_paths(
 
 
 def normalize_upload_paths(uploaded_files: list[str] | str | None) -> list[str] | None:
-    """Normalize Gradio File component values to a list of paths."""
+    """Normalize a path or list of paths to a list."""
     if uploaded_files is None:
         return None
     if isinstance(uploaded_files, str):

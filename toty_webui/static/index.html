@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Toty Web UI</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div id="app-shell">
+
+  <!-- Left: sessions rail -->
+  <aside id="sessions-rail" class="panel">
+    <div id="rail-title"><h1>root@toty-web-ui:~</h1><p>// local llm uplink</p></div>
+    <button id="btn-new" class="primary">🆕 New conversation</button>
+    <button id="btn-save">💾 Save to SQLite</button>
+    <div class="note"><b>Recent sessions</b></div>
+    <div id="sessions-list" role="listbox" aria-label="Recent sessions"></div>
+    <button id="btn-refresh-sessions">↺ Refresh list</button>
+    <div class="row">
+      <button id="btn-delete-session">🗑 Delete</button>
+      <button id="btn-export-session">⇩ Export</button>
+    </div>
+    <hr>
+    <button id="btn-export-txt">⇩ Export current chat</button>
+    <hr>
+    <label class="check"><input type="checkbox" id="wipe-confirm"> Confirm — permanently delete ALL saved conversations</label>
+    <button id="btn-wipe" class="danger">⚠ Wipe history database</button>
+    <div id="history-status" class="note"></div>
+  </aside>
+
+  <!-- Center: chat -->
+  <main id="main-col">
+    <div id="top-bar"><b>Conversation</b><span id="connection-badge" class="md">⚪ <b>Starting…</b></span></div>
+
+    <div id="model-row">
+      <div class="field grow">
+        <label for="model-input">Model</label>
+        <input id="model-input" list="model-list" autocomplete="off" placeholder="Select a pulled model or type a custom name.">
+        <datalist id="model-list"></datalist>
+      </div>
+      <button id="btn-refresh" class="primary">↺ Refresh</button>
+    </div>
+
+    <div id="status-note" class="md"></div>
+
+    <section id="chat-panel" class="panel" aria-live="polite"><div id="chat"></div></section>
+
+    <div id="conv-bar" class="md"></div>
+    <div id="metrics-bar" class="md"></div>
+    <div id="debug-panel" class="md" hidden></div>
+
+    <div id="input-row">
+      <textarea id="msg" rows="1" placeholder="Message… (Enter to send · Shift+Enter for new line)"></textarea>
+      <div id="send-col">
+        <button id="send-btn" class="primary">Send ▶</button>
+        <button id="stop-btn" class="danger" disabled>■ Stop</button>
+      </div>
+    </div>
+
+    <div id="footer-row">
+      <button id="btn-clear">🗑 Clear</button>
+      <button id="btn-clear-files">📎 Clear files</button>
+      <button id="btn-example">💡 Example</button>
+    </div>
+  </main>
+
+  <!-- Right: settings -->
+  <aside id="sidebar">
+    <details class="panel">
+      <summary>🔌 Connection</summary>
+      <div class="row">
+        <div class="field grow3"><label for="host-in">Host</label><input id="host-in" placeholder="127.0.0.1"></div>
+        <div class="field"><label for="port-in">Port</label><input id="port-in" type="number" min="1" max="65535" step="1"></div>
+      </div>
+      <div class="row">
+        <button id="btn-save-settings">Save settings</button>
+        <button id="btn-reset-settings">Reset</button>
+        <button id="btn-forget-settings">Forget</button>
+      </div>
+      <div id="settings-status" class="note"></div>
+      <div class="row">
+        <button id="btn-ping">Ping</button>
+        <button id="btn-ollama-info">Server info</button>
+      </div>
+      <div id="ollama-info-panel" class="md info" hidden></div>
+    </details>
+
+    <details class="panel">
+      <summary>🗂 Memory</summary>
+      <div class="note">Models stay loaded in GPU/RAM after use.</div>
+      <div class="row">
+        <button id="btn-loaded">Show loaded</button>
+        <button id="btn-unload">Unload model</button>
+      </div>
+      <button id="btn-unload-all">Unload all</button>
+      <hr>
+      <div class="note">Inspect context window, quant, and architecture.</div>
+      <button id="btn-model-info">Model info</button>
+      <div id="model-info-panel" class="md info" hidden></div>
+    </details>
+
+    <details class="panel">
+      <summary>⚙️ Generation</summary>
+      <div class="field"><label for="system-prompt">System prompt</label>
+        <textarea id="system-prompt" rows="3" placeholder="You are a helpful assistant…"></textarea></div>
+      <div class="field"><label for="temperature">Temperature: <span id="temperature-val">0.70</span></label>
+        <input id="temperature" type="range" min="0" max="2" step="0.05" value="0.7"></div>
+      <div class="field"><label for="num-ctx">Context window (num_ctx)</label>
+        <input id="num-ctx" type="number" min="0" max="1048576" step="1" value="0">
+        <small>0 = modelfile default (Ollama falls back to 2,048 if unset).</small></div>
+      <div class="field"><label>Thinking mode</label>
+        <div id="think-mode" class="radios">
+          <label><input type="radio" name="think" value="Off" checked> Off</label>
+          <label><input type="radio" name="think" value="Low"> Low</label>
+          <label><input type="radio" name="think" value="Medium"> Medium</label>
+          <label><input type="radio" name="think" value="High"> High</label>
+        </div>
+        <small>Reasoning models only (gpt-oss, deepseek-r1, qwq…). Low/Medium/High on a model without thinking support returns an error. Some models always reason a little even when Off.</small></div>
+      <div class="field"><label for="stream-delay">Stream delay: <span id="stream-delay-val">0</span> ms / chunk</label>
+        <input id="stream-delay" type="range" min="0" max="200" step="5" value="0">
+        <small>Typewriter effect. 0 = full speed.</small></div>
+      <label class="check"><input type="checkbox" id="debug-mode"> Debug mode</label>
+      <small>Show timing breakdown and raw Ollama stats after each reply.</small>
+    </details>
+
+    <details class="panel">
+      <summary>📎 Attachments</summary>
+      <input id="file-input" type="file" multiple>
+      <div id="attach-summary" class="md"><i>No files attached.</i></div>
+    </details>
+
+    <details class="panel">
+      <summary>🔍 Web Search</summary>
+      <label class="check"><input type="checkbox" id="search-enabled"> Enable web search</label>
+      <small>Off by default. Searches DuckDuckGo using your message as the query and feeds the results to the model for that one reply. Results are never saved, exported, or shown in the transcript.</small>
+      <div class="field"><label for="search-max">Max results: <span id="search-max-val">4</span></label>
+        <input id="search-max" type="range" min="1" max="10" step="1" value="4"></div>
+    </details>
+  </aside>
+</div>
+
+<footer id="app-footer">
+  <span id="app-version">Toty Web UI</span>
+  <span class="sep">·</span>
+  <a id="app-telegram" href="https://t.me/augustmd" target="_blank" rel="noopener">Telegram @augustmd</a>
+</footer>
+
+<script src="/static/vendor/marked.min.js"></script>
+<script src="/static/vendor/purify.min.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>

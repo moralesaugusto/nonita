@@ -186,8 +186,8 @@ class OllamaClient:
                         break
 
 
-def gradio_content_to_text(content: Any) -> str:
-    """Normalize Gradio Chatbot `content` (string or multimodal parts) to plain text."""
+def content_to_text(content: Any) -> str:
+    """Normalize chat message `content` (string or multimodal parts) to plain text."""
     if content is None:
         return ""
     if isinstance(content, str):
@@ -205,8 +205,8 @@ def gradio_content_to_text(content: Any) -> str:
     return str(content)
 
 
-def gradio_messages_to_ollama(history: list[Any] | None) -> list[dict[str, str]]:
-    """Convert Gradio 5 Chatbot message list to Ollama /api/chat messages."""
+def messages_to_ollama(history: list[Any] | None) -> list[dict[str, str]]:
+    """Convert a chat message list to Ollama /api/chat messages."""
     messages: list[dict[str, str]] = []
     for msg in history or []:
         if not isinstance(msg, dict):
@@ -214,7 +214,7 @@ def gradio_messages_to_ollama(history: list[Any] | None) -> list[dict[str, str]]
         role = msg.get("role")
         if role not in ("user", "assistant", "system"):
             continue
-        text = gradio_content_to_text(msg.get("content")).strip()
+        text = content_to_text(msg.get("content")).strip()
         if text:
             messages.append({"role": str(role), "content": text})
     return messages

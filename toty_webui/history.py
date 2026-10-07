@@ -12,7 +12,7 @@ import tempfile
 from datetime import datetime, timezone
 from typing import Any
 
-from toty_webui.client import gradio_content_to_text
+from toty_webui.client import content_to_text
 from toty_webui.config import PROJECT_ROOT
 
 DB_PATH = PROJECT_ROOT / "toty_history.db"
@@ -38,7 +38,7 @@ def _connect() -> sqlite3.Connection:
 def _title_from_messages(messages: list[dict[str, Any]]) -> str:
     for m in messages:
         if m.get("role") == "user":
-            text = gradio_content_to_text(m.get("content", "")).strip().replace("\n", " ")
+            text = content_to_text(m.get("content", "")).strip().replace("\n", " ")
             if text:
                 return text[:60] + ("…" if len(text) > 60 else "")
     return "Untitled conversation"
@@ -66,7 +66,7 @@ def save_conversation(conv_id: int | None, model: str | None, messages: list[dic
 
 
 def list_conversation_choices() -> list[tuple[str, int]]:
-    """(label, value) pairs ready for a gr.Dropdown, most recent first."""
+    """(label, value) pairs most recent first."""
     if not DB_PATH.exists():
         return []
     with _connect() as conn:
@@ -143,7 +143,7 @@ def export_to_txt(messages: list[dict[str, Any]], model: str | None = None) -> s
     lines.append("=" * 60)
     for m in messages:
         role = str(m.get("role", "?")).upper()
-        content = gradio_content_to_text(m.get("content", ""))
+        content = content_to_text(m.get("content", ""))
         lines.append(f"\n[{role}]\n{content}")
     text = "\n".join(lines)
 

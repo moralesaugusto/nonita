@@ -1,0 +1,133 @@
+/* ── Palette ─────────────────────────────────────────── */
+:root {
+  --hk-bg: #060a06;
+  --hk-panel: #0a0f0a;
+  --hk-panel-alt: #0d140d;
+  --hk-border: #1d5c33;
+  --hk-border-bright: #2fdc6c;
+  --hk-green: #39ff6a;
+  --hk-green-dim: #1f8f45;
+  --hk-green-glow: rgba(57,255,106,0.35);
+  --hk-cyan: #4dfaff;
+  --hk-red: #ff3b57;
+  --hk-mono: 'Share Tech Mono', 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --footer-h: 34px;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--hk-bg); color: var(--hk-green); font-family: var(--hk-mono); font-size: 17px; }
+body { padding: 0.75rem 1rem calc(var(--footer-h) + 1rem); }
+a { color: var(--hk-cyan); }
+a:hover { color: var(--hk-green); }
+hr { border: 0; border-top: 1px solid var(--hk-border); margin: 0.75rem 0; }
+small, .note { color: var(--hk-green-dim); font-size: 0.85rem; display: block; }
+.note { margin: 0.2rem 0; overflow-wrap: anywhere; }
+
+/* ── Layout: sessions | chat | settings ───────────────── */
+#app-shell { display: flex; gap: 1rem; align-items: flex-start; max-width: 1600px; width: 100%; margin: 0 auto; }
+#sessions-rail { flex: 2 1 0; min-width: 230px; }
+#main-col { flex: 7 1 0; min-width: 0; display: flex; flex-direction: column; gap: 0.4rem; }
+#sidebar { flex: 2 1 0; min-width: 250px; display: flex; flex-direction: column; gap: 0.6rem; }
+.panel { background: var(--hk-panel-alt); border: 1px solid var(--hk-border); border-radius: 4px; padding: 0.85rem; }
+#sessions-rail { display: flex; flex-direction: column; gap: 0.5rem; }
+.row { display: flex; gap: 0.5rem; align-items: flex-end; }
+.row > * { flex: 1 1 0; min-width: 0; }
+.grow { flex: 5 1 0 !important; }
+.grow3 { flex: 3 1 0 !important; }
+
+#rail-title h1 { font-size: 1.05rem; margin: 0; color: var(--hk-green); overflow-wrap: anywhere; }
+#rail-title p { margin: 0.1rem 0 0.4rem; color: var(--hk-green-dim); font-size: 0.85rem; }
+
+/* ── Controls ─────────────────────────────────────────── */
+button {
+  font: inherit; font-weight: 600; font-size: 0.95rem; cursor: pointer;
+  background: #000; color: var(--hk-green); border: 1px solid var(--hk-border);
+  border-radius: 3px; padding: 8px 12px; min-height: 40px;
+  transition: box-shadow .15s ease, background .15s ease, color .15s ease;
+}
+button:hover:not(:disabled) { background: var(--hk-green); color: #000; box-shadow: 0 0 14px var(--hk-green-glow); }
+button.primary { border-color: var(--hk-border-bright); }
+button.danger { color: var(--hk-red); border-color: var(--hk-red); }
+button.danger:hover:not(:disabled) { background: var(--hk-red); color: #000; box-shadow: 0 0 14px rgba(255,59,87,.45); }
+button:disabled { opacity: .45; cursor: not-allowed; }
+button:focus-visible, input:focus-visible, textarea:focus-visible, summary:focus-visible { outline: 2px solid var(--hk-border-bright); outline-offset: 1px; }
+input, textarea {
+  width: 100%; font: inherit; font-size: 1rem; color: var(--hk-green); background: #000;
+  border: 1px solid var(--hk-border); border-radius: 3px; padding: 8px 10px;
+}
+input::placeholder, textarea::placeholder { color: var(--hk-green-dim); }
+input[type=range] { padding: 0; accent-color: var(--hk-green); }
+input[type=checkbox], input[type=radio] { width: auto; accent-color: var(--hk-green); }
+.field { display: flex; flex-direction: column; gap: 0.25rem; margin: 0.5rem 0; }
+.field label { color: var(--hk-green-dim); font-size: 0.9rem; }
+.check { display: flex; gap: 0.5rem; align-items: flex-start; font-size: 0.9rem; margin: 0.4rem 0; }
+.radios { display: flex; flex-wrap: wrap; gap: 0.4rem 0.9rem; }
+.radios label { color: var(--hk-green); display: flex; gap: 0.3rem; }
+details > summary { cursor: pointer; font-weight: 600; list-style: none; }
+details[open] > summary { margin-bottom: 0.6rem; }
+details > button, details > .row { margin-top: 0.5rem; }
+
+/* ── Sessions list ────────────────────────────────────── */
+#sessions-list { display: flex; flex-direction: column; gap: 4px; max-height: 40vh; overflow-y: auto; }
+.session-item {
+  text-align: left; padding: 8px 10px; font-size: 0.85rem; font-weight: 400;
+  border: 1px solid var(--hk-border); border-radius: 3px; background: transparent; overflow-wrap: anywhere;
+}
+.session-item.selected { background: rgba(57,255,106,.12); border-left: 3px solid var(--hk-border-bright); }
+
+/* ── Top bar / model ──────────────────────────────────── */
+#top-bar { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+#connection-badge, #status-note, #conv-bar, #metrics-bar { overflow-wrap: anywhere; word-break: break-word; }
+#model-row { display: flex; gap: 0.5rem; align-items: flex-end; }
+#model-row .field { margin: 0; }
+
+/* ── Chat ─────────────────────────────────────────────── */
+#chat-panel { padding: 0; background: #030503; box-shadow: 0 0 24px rgba(57,255,106,.08), inset 0 0 40px rgba(0,0,0,.6); }
+#chat { height: 600px; overflow-y: auto; padding: 0.75rem; display: flex; flex-direction: column; gap: 0.6rem; }
+.msg { border-left: 3px solid var(--hk-green); background: rgba(57,255,106,.05); padding: 0.5rem 0.8rem; border-radius: 2px; overflow-wrap: anywhere; }
+.msg.user { border-left-color: var(--hk-cyan); background: rgba(77,250,255,.05); }
+.msg .who { color: var(--hk-green-dim); font-size: 0.8rem; margin-bottom: 0.2rem; }
+.msg .footer { color: var(--hk-green-dim); font-size: 0.85rem; border-left: 2px solid var(--hk-border); padding-left: 0.5rem; margin-top: 0.4rem; font-style: italic; }
+.msg.error { border-left-color: var(--hk-red); }
+details.thought { border: 1px solid var(--hk-border); border-radius: 3px; padding: 0.4rem 0.6rem; margin-bottom: 0.5rem; color: var(--hk-green-dim); }
+details.thought > summary { font-weight: 400; }
+.md p { margin: 0.4em 0; }
+.md pre { background: #000; border: 1px solid var(--hk-border); padding: 0.6rem; overflow-x: auto; border-radius: 3px; }
+.md code { font-family: var(--hk-mono); color: var(--hk-cyan); }
+.md pre code { color: var(--hk-green); }
+.md table { border-collapse: collapse; } .md th, .md td { border: 1px solid var(--hk-border); padding: 4px 8px; }
+.md ul, .md ol { padding-left: 1.4rem; }
+.md blockquote { border-left: 2px solid var(--hk-border); margin-left: 0; padding-left: 0.8rem; color: var(--hk-green-dim); }
+.info { background: #000; border: 1px solid var(--hk-border); border-radius: 2px; padding: 0.6rem 0.8rem; margin-top: 0.5rem; font-size: 0.92rem; overflow-wrap: anywhere; }
+#conv-bar, #metrics-bar { font-size: 0.9rem; color: var(--hk-green-dim); }
+#debug-panel { background: #000; border: 1px solid var(--hk-border); padding: 0.7rem 0.9rem; font-size: 0.95rem; overflow-x: auto; }
+
+/* ── Input ────────────────────────────────────────────── */
+#input-row { display: flex; gap: 0.5rem; align-items: flex-end; margin-top: 0.3rem; }
+#msg { flex: 5 1 0; resize: none; max-height: 9rem; min-height: 42px; }
+#send-col { flex: 1 1 0; min-width: 90px; display: flex; flex-direction: column; gap: 0.4rem; }
+#footer-row { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+
+/* ── Footer: version + Telegram, always visible ───────── */
+#app-footer {
+  position: fixed; left: 0; right: 0; bottom: 0; height: var(--footer-h); z-index: 10;
+  display: flex; justify-content: center; align-items: center; gap: 0.5rem;
+  background: #000; border-top: 1px solid var(--hk-border);
+  color: var(--hk-green-dim); font-size: 0.85rem; padding: 0 0.5rem; white-space: nowrap; overflow: hidden;
+}
+
+/* ── Mobile: stack rows, bigger touch targets, no horizontal scroll ── */
+@media (max-width: 640px) {
+  html, body { overflow-x: hidden; max-width: 100vw; }
+  body { padding: 0.5rem 0.5rem calc(var(--footer-h) + 0.75rem); }
+  #app-shell, #model-row, #input-row, #footer-row, #top-bar { flex-direction: column; align-items: stretch; flex-wrap: nowrap; }
+  #app-shell > *, #model-row > *, #input-row > *, #footer-row > * { width: 100%; min-width: 0; flex: 1 1 auto; }
+  #sessions-rail, #sidebar, #main-col { min-width: 0; width: 100%; }
+  .row { flex-wrap: wrap; }
+  #send-col { flex-direction: row; gap: 0.5rem; }
+  #send-col > * { flex: 1 1 0; }
+  button, summary, input[type=file] { min-height: 44px; }
+  summary { display: flex; align-items: center; }
+  #chat { height: 50vh; min-height: 280px; }
+  :root { --footer-h: 48px; }
+  #app-footer { flex-wrap: wrap; white-space: normal; font-size: 0.75rem; line-height: 1.2; text-align: center; gap: 0 0.4rem; }
+}

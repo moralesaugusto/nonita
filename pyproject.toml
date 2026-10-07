@@ -1,21 +1,29 @@
 [project]
 name = "toty-webui"
-version = "0.1"
-description = "Gradio web frontend for a remote Ollama host"
+dynamic = ["version"]
+description = "Web frontend (FastAPI + HTML) for a remote Ollama host"
 requires-python = ">=3.11"
 dependencies = [
     "ddgs>=9.14.4",
-    "gradio>=5.0.0",
+    "fastapi>=0.110.0",
     "httpx>=0.27.0",
+    "python-multipart>=0.0.9",
     "pypdf>=5.0.0",
+    "uvicorn[standard]>=0.29.0",
 ]
 
 [project.scripts]
-toty-webui = "toty_webui.app:main"
+toty-webui = "toty_webui.server:main"
 
 [build-system]
 requires = ["setuptools>=69.0"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools.dynamic]
+version = {attr = "toty_webui.__version__"}
+
+[tool.setuptools.package-data]
+toty_webui = ["static/**/*"]
 
 [tool.setuptools.packages.find]
 where = ["."]

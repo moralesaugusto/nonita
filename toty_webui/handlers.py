@@ -1,15 +1,16 @@
-"""Event handlers and chat logic for the Gradio UI."""
+"""Event handlers and chat logic for the web UI."""
 
 from __future__ import annotations
 
 import logging
 import time
 from datetime import datetime, timezone
+from collections.abc import Iterator
 from typing import Any
 
 from toty_webui.config import env_timeout
 from toty_webui.connection import parse_connection
-from toty_webui.client import OllamaClient, gradio_messages_to_ollama
+from toty_webui.client import OllamaClient, messages_to_ollama
 from toty_webui.files import ingest_upload_paths, normalize_upload_paths
 from toty_webui.metrics import (
     ChatTurnMetrics,
@@ -25,18 +26,10 @@ logger = logging.getLogger(__name__)
 
 
 def _text(val: str | float | None) -> str:
-    """Gradio sometimes passes None for empty inputs; normalize to str."""
+    """Request fields may be None for empty inputs; normalize to str."""
     if val is None:
         return ""
     return str(val)
-
-
-def _stop_flag(raw: dict | None) -> dict:
-    """Shared session dict for cooperative streaming cancel."""
-    if isinstance(raw, dict):
-        raw.setdefault("abort", False)
-        return raw
-    return {"abort": False}
 
 
 def _client_from_inputs(host: str | None, port: str | int | float | None) -> OllamaClient | str:
@@ -166,89 +159,71 @@ def unload_all_loaded_models(host: str, port: str | int | float) -> str:
         return f"Could not unload loaded models: `{exc}`"
 
 
-def _fmt_conv_metrics(state: dict) -> str:
-    turns = state.get("turns", 0)
-    if turns == 0:
+def _turn_footer(m: ChatTurnMetrics) -> str:
+    """Compact token + timing footer appended under each reply (markdown)."""
+    if m.completion_tokens is None or m.error:
         return ""
-    prompt = state.get("prompt", 0)
-    completion = state.get("completion", 0)
-    total = prompt + completion
-    label = "turn" if turns == 1 else "turns"
-    parts = [f"**{turns}** {label}"]
-    if total:
-        parts.append(f"↑{prompt:,} ↓{completion:,} tok")
-        parts.append(f"**{total:,} total**")
-    return "Session: " + " · ".join(parts)
+    fp: list[str] = []
+    if m.prompt_tokens is not None:
+        fp.append(f"↑{m.prompt_tokens:,} ↓{m.completion_tokens:,} tok")
+    else:
+        fp.append(f"↓{m.completion_tokens:,} tok")
+    if m.tokens_per_second is not None:
+        fp.append(f"{m.tokens_per_second:.1f} tok/s")
+    if m.ttft_seconds is not None:
+        fp.append(f"TTFT {m.ttft_seconds:.2f}s")
+    fp.append(f"⏱ {m.wall_seconds:.2f}s")
+    return "  ·  ".join(fp)
 
 
-def stream_reply(
+def stream_events(
+    *,
     message: str | None,
     history: list | None,
     host: str | None,
     port: str | int | float | None,
     model: str | None,
-    system_prompt: str | None,
-    temperature: float | None,
-    num_ctx: int | float | None,
-    stream_delay_ms: float | None,
-    uploaded_files: list[str] | str | None,
-    stop_flag: dict | None,
-    conv_state: dict | None,
+    system_prompt: str | None = None,
+    temperature: float | None = None,
+    num_ctx: int | float | None = None,
+    stream_delay_ms: float | None = None,
+    file_paths: list[str] | None = None,
     debug_mode: bool = False,
     search_enabled: bool = False,
     search_max_results: int | float | None = 4,
     think_mode: str | None = None,
-):
+) -> Iterator[dict[str, Any]]:
+    """Run one chat turn and yield JSON-serialisable events.
+
+    Event types: ``status`` (text), ``thinking`` (text chunk), ``text`` (text chunk),
+    ``done`` (metrics, debug, footer, usage) and ``error`` (message, plus metrics/debug
+    when the failure happened mid-request). Closing the generator (client
+    disconnect = Stop) closes the upstream HTTP stream.
+    """
     history = history or []
     msg_text = _text(message).strip()
-    metrics_empty, debug_empty = empty_metrics_display()
-    cs = conv_state if isinstance(conv_state, dict) else {"prompt": 0, "completion": 0, "turns": 0}
-    conv_display = _fmt_conv_metrics(cs)
 
     if not msg_text:
-        yield history, "", metrics_empty, debug_empty, cs, conv_display
+        yield {"type": "error", "message": "Type a message first."}
         return
-
     if not model:
-        working = list(history)
-        working.append({"role": "user", "content": msg_text})
-        working.append(
-            {
-                "role": "assistant",
-                "content": "Pick a model from the dropdown or click **Refresh models**.",
-            }
-        )
-        yield working, "", metrics_empty, debug_empty, cs, conv_display
+        yield {"type": "error", "message": "Pick a model from the dropdown or click **Refresh models**."}
         return
 
     client_or_err = _client_from_inputs(host, port)
     if isinstance(client_or_err, str):
-        working = list(history)
-        working.append({"role": "user", "content": msg_text})
-        port_err = (
-            "Invalid port — enter a number between 1 and 65535."
-            if client_or_err == "Port must be a number."
-            else client_or_err
-        )
-        working.append({"role": "assistant", "content": port_err})
-        yield working, "", metrics_empty, debug_empty, cs, conv_display
+        yield {"type": "error", "message": client_or_err}
         return
-
     client = client_or_err
-    paths = normalize_upload_paths(uploaded_files)
-    file_ctx = ingest_upload_paths(paths)
-    attachment_count = len(paths) if paths else 0
 
-    working = list(history)
-    working.append({"role": "user", "content": msg_text})
+    file_ctx = ingest_upload_paths(file_paths)
+    attachment_count = len(file_paths) if file_paths else 0
 
     search_ctx = ""
     search_result_count = 0
     if search_enabled:
-        # Search runs synchronously and can take several seconds (network-bound,
-        # bounded by search.HARD_TIMEOUT_SECONDS) — show a status so the UI
-        # doesn't look frozen while it's in flight.
-        yield working, "", "🔍 **Searching the web…**", "", cs, conv_display
+        # Search is synchronous and network-bound (bounded by search.HARD_TIMEOUT_SECONDS).
+        yield {"type": "status", "text": "🔍 **Searching the web…**"}
         try:
             max_results = int(search_max_results) if search_max_results else 4
         except (TypeError, ValueError):
@@ -264,26 +239,24 @@ def stream_reply(
     if file_ctx:
         messages.append({"role": "system", "content": file_ctx})
     if search_ctx:
-        # Ephemeral: only ever sent to Ollama for this one turn, never appended
-        # to `working`/history — so it's never shown, saved, or exported.
+        # Ephemeral: sent to Ollama for this turn only, never echoed to the client,
+        # so it is never shown, saved, or exported.
         messages.append({"role": "system", "content": search_ctx})
-    messages.extend(gradio_messages_to_ollama(history))
+    messages.extend(messages_to_ollama(history))
     messages.append({"role": "user", "content": msg_text})
 
-    request_chars = sum(len(m["content"]) for m in messages)
     temp_value = float(temperature if temperature is not None else 0.7)
     try:
         port_int = int(port)
     except (TypeError, ValueError):
         port_int = 0
-
     think = _normalize_think(think_mode)
 
     request_info = RequestDebugInfo(
         model=str(model),
         temperature=temp_value,
         message_count=len(messages),
-        request_char_count=request_chars,
+        request_char_count=sum(len(m["content"]) for m in messages),
         system_prompt_chars=len(sys_text),
         file_context_chars=len(file_ctx),
         attachment_count=attachment_count,
@@ -294,16 +267,6 @@ def stream_reply(
         port=port_int,
     )
 
-    flag = _stop_flag(stop_flag)
-    flag["abort"] = False
-
-    yield working, "", format_live_metrics(0.0), "", cs, conv_display
-
-    assistant = ""
-    thinking_acc = ""
-    content_idx: int | None = None
-    thinking_idx: int | None = None
-    thinking_started: float | None = None
     opts: dict[str, Any] = {"temperature": temp_value}
     try:
         ctx_int = int(num_ctx) if num_ctx is not None else None
@@ -311,7 +274,6 @@ def stream_reply(
         ctx_int = None
     if ctx_int and ctx_int > 0:
         opts["num_ctx"] = ctx_int
-
     try:
         delay_s = float(stream_delay_ms) / 1000.0 if stream_delay_ms else 0.0
     except (TypeError, ValueError):
@@ -320,141 +282,57 @@ def stream_reply(
     started = time.perf_counter()
     first_token_at: float | None = None
     raw_stats: dict[str, Any] | None = None
-    aborted = False
 
     try:
-
-        def should_abort() -> bool:
-            return bool(flag.get("abort"))
-
-        for event in client.stream_chat(
-            model=model, messages=messages, options=opts, think=think, should_abort=should_abort
-        ):
+        for event in client.stream_chat(model=model, messages=messages, options=opts, think=think):
             if event.thinking:
-                if thinking_idx is None:
-                    working.append(
-                        {
-                            "role": "assistant",
-                            "content": "",
-                            "metadata": {"title": "🤔 Thinking…", "status": "pending"},
-                        }
-                    )
-                    thinking_idx = len(working) - 1
-                    thinking_started = time.perf_counter()
-                thinking_acc += event.thinking
-                working[thinking_idx]["content"] = thinking_acc
-                elapsed = time.perf_counter() - started
                 if delay_s > 0:
                     time.sleep(delay_s)
-                yield working, "", format_live_metrics(elapsed), "", cs, conv_display
-
+                yield {"type": "thinking", "text": event.thinking}
             if event.text:
                 if first_token_at is None:
                     first_token_at = time.perf_counter()
-                if thinking_idx is not None and working[thinking_idx]["metadata"]["status"] != "done":
-                    think_seconds = time.perf_counter() - (thinking_started or time.perf_counter())
-                    working[thinking_idx]["metadata"]["status"] = "done"
-                    working[thinking_idx]["metadata"]["title"] = f"🤔 Thought for {think_seconds:.1f}s"
-                if content_idx is None:
-                    working.append({"role": "assistant", "content": ""})
-                    content_idx = len(working) - 1
-                assistant += event.text
-                working[content_idx]["content"] = assistant
-                elapsed = time.perf_counter() - started
                 if delay_s > 0:
                     time.sleep(delay_s)
-                yield working, "", format_live_metrics(elapsed), "", cs, conv_display
-
+                yield {"type": "text", "text": event.text}
             if event.done and event.stats:
                 raw_stats = event.stats
 
-        if thinking_idx is not None and working[thinking_idx]["metadata"]["status"] != "done":
-            think_seconds = time.perf_counter() - (thinking_started or time.perf_counter())
-            working[thinking_idx]["metadata"]["status"] = "done"
-            working[thinking_idx]["metadata"]["title"] = f"🤔 Thought for {think_seconds:.1f}s"
-        if content_idx is None:
-            working.append({"role": "assistant", "content": ""})
-            content_idx = len(working) - 1
-
-        aborted = bool(flag.get("abort"))
-        if aborted:
-            if assistant:
-                assistant = assistant.rstrip() + "\n\n*[generation stopped]*"
-            else:
-                assistant = "*[generation stopped]*"
-            working[content_idx]["content"] = assistant
-
-        wall_seconds = time.perf_counter() - started
-        ttft = (first_token_at - started) if first_token_at is not None else None
-        turn_metrics = ChatTurnMetrics.from_ollama(
+        metrics = ChatTurnMetrics.from_ollama(
             model=str(model),
-            wall_seconds=wall_seconds,
-            ttft_seconds=ttft,
+            wall_seconds=time.perf_counter() - started,
+            ttft_seconds=(first_token_at - started) if first_token_at is not None else None,
             raw_stats=raw_stats,
-            aborted=aborted,
+            aborted=False,
             request=request_info,
         )
-        # Append compact token + timing footer as a markdown blockquote
-        if turn_metrics.completion_tokens is not None and not turn_metrics.error:
-            fp: list[str] = []
-            if turn_metrics.prompt_tokens is not None:
-                fp.append(f"↑{turn_metrics.prompt_tokens:,} ↓{turn_metrics.completion_tokens:,} tok")
-            else:
-                fp.append(f"↓{turn_metrics.completion_tokens:,} tok")
-            if turn_metrics.tokens_per_second is not None:
-                fp.append(f"{turn_metrics.tokens_per_second:.1f} tok/s")
-            if turn_metrics.ttft_seconds is not None:
-                fp.append(f"TTFT {turn_metrics.ttft_seconds:.2f}s")
-            fp.append(f"⏱ {turn_metrics.wall_seconds:.2f}s")
-            working[content_idx]["content"] = (
-                working[content_idx]["content"].rstrip() + "\n\n> *" + "  ·  ".join(fp) + "*"
-            )
-
-        new_cs = {
-            "prompt": cs.get("prompt", 0) + (turn_metrics.prompt_tokens or 0),
-            "completion": cs.get("completion", 0) + (turn_metrics.completion_tokens or 0),
-            "turns": cs.get("turns", 0) + 1,
+        yield {
+            "type": "done",
+            "metrics": format_metrics_summary(metrics),
+            "debug": format_debug_panel(metrics) if debug_mode else "",
+            "footer": _turn_footer(metrics),
+            "usage": {
+                "prompt": metrics.prompt_tokens or 0,
+                "completion": metrics.completion_tokens or 0,
+            },
         }
-        summary = format_metrics_summary(turn_metrics)
-        debug_text = format_debug_panel(turn_metrics) if debug_mode else ""
-        yield working, "", summary, debug_text, new_cs, _fmt_conv_metrics(new_cs)
-
     except Exception as exc:  # noqa: BLE001
         logger.exception("stream_chat failed")
-        if content_idx is None:
-            # Exception may have fired before any content (or even thinking) arrived
-            # — e.g. Ollama rejects `think` immediately for a non-thinking model —
-            # so `working` may still end with the user's own message. Never clobber it.
-            working.append({"role": "assistant", "content": ""})
-            content_idx = len(working) - 1
-        working[content_idx]["content"] = f"**Request failed:** `{exc}`"
-        wall_seconds = time.perf_counter() - started
-        turn_metrics = ChatTurnMetrics.from_ollama(
+        metrics = ChatTurnMetrics.from_ollama(
             model=str(model),
-            wall_seconds=wall_seconds,
+            wall_seconds=time.perf_counter() - started,
             ttft_seconds=(first_token_at - started) if first_token_at else None,
             raw_stats=raw_stats,
-            aborted=aborted,
+            aborted=False,
             error=str(exc),
             request=request_info,
         )
-        summary = format_metrics_summary(turn_metrics)
-        debug_text = format_debug_panel(turn_metrics) if debug_mode else ""
-        yield working, "", summary, debug_text, cs, conv_display
-
-
-def clear_chat(stop_flag: dict | None) -> tuple[list[Any], str, dict, str, str, dict, str]:
-    flag = _stop_flag(stop_flag)
-    flag["abort"] = False
-    metrics_empty, debug_empty = empty_metrics_display()
-    empty_conv: dict = {"prompt": 0, "completion": 0, "turns": 0}
-    return [], "", flag, metrics_empty, debug_empty, empty_conv, ""
-
-
-def request_stop(stop_flag: dict | None) -> dict:
-    flag = _stop_flag(stop_flag)
-    flag["abort"] = True
-    return flag
+        yield {
+            "type": "error",
+            "message": f"**Request failed:** `{exc}`",
+            "metrics": format_metrics_summary(metrics),
+            "debug": format_debug_panel(metrics) if debug_mode else "",
+        }
 
 
 def _fmt_bytes(n: int | None) -> str:
@@ -683,7 +561,3 @@ def show_model_info(host: str, port: str | int | float, model: str | None) -> st
         lines.append("```")
 
     return "\n".join(lines)
-
-
-def insert_example_prompt() -> str:
-    return "Summarize the attached files in three bullet points, then suggest logical next steps."

@@ -1,3 +1,3 @@
-"""Gradio web UI for Ollama."""
+"""Web UI (FastAPI + HTML) for Ollama."""
 
-__version__ = "0.1.0"
+__version__ = "0.2"
