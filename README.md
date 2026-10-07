@@ -29,7 +29,7 @@ A small, self-hosted web UI for chatting with models on an [Ollama](https://olla
 ## Quick start
 
 ```bash
-git clone https://github.com/<your-user>/nonita.git
+git clone https://github.com/moralesaugusto/nonita.git
 cd nonita
 cp .env.example .env          # then edit OLLAMA_HOST etc.
 uv run nonita gen-cert        # optional but recommended: HTTPS certificate
