@@ -1,0 +1,7 @@
+# Install editable: pip install -e .
+# Or: pip install -r requirements.txt
+ddgs>=9.14.4
+gradio>=5.0.0
+httpx>=0.27.0
+pypdf>=5.0.0
+python-dotenv>=1.0.1
