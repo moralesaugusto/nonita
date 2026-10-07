@@ -8,3 +8,6 @@ cert.pem
 key.pem
 nonita_history.db
 exports/
+docs/improvementsv2.md
+*.pem
+*.db

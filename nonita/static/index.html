@@ -33,6 +33,31 @@
 
 <a class="skip" href="#msg">Skip to message box</a>
 
+<div id="auth-overlay" hidden>
+  <div class="auth-card" role="dialog" aria-modal="true" aria-labelledby="auth-title">
+    <div class="auth-brand"><img src="/static/favicon.svg" alt="" width="34" height="34"><strong>Nonita</strong></div>
+    <form id="login-form" autocomplete="on">
+      <h1 id="auth-title">Sign in</h1>
+      <div class="field"><label for="login-user">Username</label><input id="login-user" name="username" autocomplete="username" required></div>
+      <div class="field"><label for="login-pass">Password</label><input id="login-pass" name="password" type="password" autocomplete="current-password" required></div>
+      <div id="login-error" class="auth-error" role="alert"></div>
+      <button class="btn primary block" type="submit">Sign in</button>
+      <p class="hint">First time? The default account is <code>admin</code> / <code>admin</code>. You will be asked to choose a new password straight away.</p>
+    </form>
+    <form id="pw-form" hidden>
+      <h1 id="pw-title">Change password</h1>
+      <p id="pw-forced" class="hint" hidden>You are using the default password. Choose a new one to continue.</p>
+      <input type="text" name="username" autocomplete="username" hidden aria-hidden="true" tabindex="-1" id="pw-user">
+      <div class="field"><label for="pw-current">Current password</label><input id="pw-current" type="password" autocomplete="current-password" required></div>
+      <div class="field"><label for="pw-new">New password</label><input id="pw-new" type="password" autocomplete="new-password" required></div>
+      <div class="field"><label for="pw-confirm">Repeat new password</label><input id="pw-confirm" type="password" autocomplete="new-password" required></div>
+      <div id="pw-error" class="auth-error" role="alert"></div>
+      <div class="btn-row"><button class="btn primary grow" type="submit">Change password</button>
+        <button id="pw-cancel" class="btn" type="button">Cancel</button></div>
+    </form>
+  </div>
+</div>
+
 <div id="app">
   <header id="app-header">
     <div class="brand">
@@ -41,6 +66,8 @@
     </div>
     <div class="header-right">
       <div id="connection-badge" class="badge" role="status" aria-live="polite"><span class="dot"></span><span class="badge-text">Connecting…</span></div>
+      <button id="btn-account" class="btn small" type="button" hidden>Change password</button>
+      <button id="btn-logout" class="btn small" type="button" hidden>Sign out</button>
       <button id="theme-toggle" class="icon-btn" type="button" aria-label="Switch colour theme" title="Switch colour theme">
         <svg class="i"><use id="theme-icon" href="#i-moon"/></svg>
       </button>

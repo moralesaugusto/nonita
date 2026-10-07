@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import json
 import logging
 import re
@@ -12,15 +13,17 @@ from pathlib import Path
 from typing import Any
 
 import uvicorn
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from nonita import __version__
+from nonita import auth
 from nonita import history as history_store
 from nonita.config import (
     DEFAULT_HOST,
+    cert_paths,
     env_debug_mode,
     env_host,
     env_max_upload_bytes,
@@ -68,12 +71,43 @@ _SECURITY_HEADERS = {
 }
 
 
+_PUBLIC_API = {"/api/meta", "/api/auth/login", "/api/auth/me", "/api/auth/logout"}
+_PASSWORD_CHANGE_API = {"/api/auth/password"}
+_SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
+
+
+def _json_error(status: int, detail: str, **extra: Any) -> JSONResponse:
+    return JSONResponse(status_code=status, content={"detail": detail, **extra})
+
+
 @app.middleware("http")
 async def security_headers(request, call_next):
     response = await call_next(request)
     for name, value in _SECURITY_HEADERS.items():
         response.headers.setdefault(name, value)
+    if request.url.scheme == "https":
+        response.headers.setdefault("Strict-Transport-Security", "max-age=31536000")
+    if request.url.path.startswith("/api/"):
+        response.headers.setdefault("Cache-Control", "no-store")
     return response
+
+
+@app.middleware("http")
+async def require_login(request, call_next):
+    """Everything under /api/ needs a session, except login/meta; a pending password change blocks the rest."""
+    path = request.url.path
+    if path.startswith("/api/"):
+        origin = request.headers.get("origin")
+        if request.method not in _SAFE_METHODS and origin and origin.split("://", 1)[-1] != request.headers.get("host"):
+            return _json_error(403, "Cross-origin request blocked.")
+        if path not in _PUBLIC_API:
+            user = auth.session_user(request.cookies.get(auth.COOKIE_NAME))
+            if user is None:
+                return _json_error(401, "Sign in required.", code="auth_required")
+            if user["must_change"] and path not in _PASSWORD_CHANGE_API:
+                return _json_error(403, "You must change your password first.", code="password_change_required")
+            request.state.user = user
+    return await call_next(request)
 
 
 # ── Request models ────────────────────────────────────────────────────────
@@ -105,6 +139,16 @@ class ChatReq(Conn):
     think_mode: str = "Off"
 
 
+class LoginReq(BaseModel):
+    username: str = ""
+    password: str = ""
+
+
+class PasswordReq(BaseModel):
+    current_password: str = ""
+    new_password: str = ""
+
+
 class SaveReq(BaseModel):
     conv_id: int | None = None
     model: str | None = None
@@ -114,6 +158,54 @@ class SaveReq(BaseModel):
 class ExportReq(BaseModel):
     model: str | None = None
     messages: list[dict[str, Any]] = Field(default_factory=list)
+
+
+# ── Authentication ────────────────────────────────────────────────────────
+def _set_cookie(response: Response, request: Request, token: str) -> None:
+    response.set_cookie(
+        auth.COOKIE_NAME, token, max_age=auth.SESSION_SECONDS, httponly=True, samesite="strict",
+        secure=request.url.scheme == "https", path="/",
+    )
+
+
+@app.post("/api/auth/login")
+def login(req: LoginReq, request: Request) -> Response:
+    key = f"{request.client.host if request.client else ''}|{req.username.lower()}"
+    wait = auth.retry_after(key)
+    if wait:
+        return _json_error(429, f"Too many failed attempts. Try again in {wait} s.")
+    token, must_change = auth.login(req.username, req.password, request.client.host if request.client else "")
+    if token is None:
+        return _json_error(401, "Incorrect username or password.")
+    response = JSONResponse({"username": req.username, "must_change": must_change})
+    _set_cookie(response, request, token)
+    return response
+
+
+@app.post("/api/auth/logout")
+def logout(request: Request) -> Response:
+    auth.logout(request.cookies.get(auth.COOKIE_NAME))
+    response = JSONResponse({"ok": True})
+    response.delete_cookie(auth.COOKIE_NAME, path="/")
+    return response
+
+
+@app.get("/api/auth/me")
+def me(request: Request) -> dict[str, Any]:
+    user = auth.session_user(request.cookies.get(auth.COOKIE_NAME))
+    if user is None:
+        return {"authenticated": False}
+    return {"authenticated": True, **user}
+
+
+@app.post("/api/auth/password")
+def change_password(req: PasswordReq, request: Request) -> Response:
+    token, error = auth.change_password(request.state.user["username"], req.current_password, req.new_password)
+    if token is None:
+        return _json_error(422, error or "Could not change password.")
+    response = JSONResponse({"ok": True})
+    _set_cookie(response, request, token)
+    return response
 
 
 # ── Meta / config ─────────────────────────────────────────────────────────
@@ -334,17 +426,44 @@ async def value_error_handler(_, exc: ValueError) -> JSONResponse:
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
-def main() -> None:
+def serve() -> None:
     host = server_host()
     port = server_port()
     ssl_kwargs = ssl_launch_kwargs()
     logging.basicConfig(level=logging.INFO)
     logger.info("Starting %s v%s on %s:%s (Ollama default host %s)", APP_TITLE, __version__, host, port, DEFAULT_HOST)
     if ssl_kwargs:
-        logger.info("HTTPS enabled (cert.pem + key.pem found in project root)")
+        logger.info("HTTPS enabled (elliptic-curve certificate %s)", ssl_kwargs["ssl_certfile"])
     else:
-        logger.info("HTTP mode — place cert.pem and key.pem in the project root for HTTPS")
+        logger.warning("HTTP mode, traffic and passwords are NOT encrypted. Run 'uv run nonita gen-cert' to enable HTTPS.")
     uvicorn.run(app, host=host, port=port, log_level="info", **ssl_kwargs)
+
+
+def main(argv: list[str] | None = None) -> None:
+    parser = argparse.ArgumentParser(prog="nonita", description=APP_TITLE)
+    sub = parser.add_subparsers(dest="command")
+    sub.add_parser("serve", help="start the web UI (default)")
+    gen = sub.add_parser("gen-cert", help="generate a self-signed ECDSA P-384 certificate and key")
+    gen.add_argument("--san", action="append", default=[], metavar="NAME", help="extra DNS name or IP address (repeatable)")
+    gen.add_argument("--days", type=int, default=365)
+    gen.add_argument("--force", action="store_true", help="overwrite an existing certificate/key")
+    sub.add_parser("reset-password", help="reset the admin account to admin/admin (password change forced at next login)")
+    args = parser.parse_args(argv)
+
+    if args.command == "gen-cert":
+        from nonita.tls import generate_self_signed
+
+        cert, key = cert_paths()
+        if (cert.exists() or key.exists()) and not args.force:
+            raise SystemExit(f"{cert} or {key} already exists; use --force to overwrite.")
+        generate_self_signed(cert, key, args.san, args.days)
+        print(f"Wrote {cert} and {key} (ECDSA P-384, SHA-384, valid {args.days} days).")
+    elif args.command == "reset-password":
+        if input(f"Reset '{auth.DEFAULT_USER}' to the default password? [y/N] ").strip().lower() == "y":
+            auth.reset_to_default()
+            print(f"'{auth.DEFAULT_USER}' reset to '{auth.DEFAULT_PASSWORD}'; a new password is required at next login.")
+    else:
+        serve()
 
 
 if __name__ == "__main__":

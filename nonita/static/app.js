@@ -29,10 +29,75 @@ async function api(path, body, method) {
   });
   if (!res.ok) {
     let detail = res.statusText;
-    try { const j = await res.json(); detail = typeof j.detail === "string" ? j.detail : JSON.stringify(j.detail); } catch (e) {}
+    try {
+      const j = await res.json();
+      detail = typeof j.detail === "string" ? j.detail : JSON.stringify(j.detail);
+      if (j.code === "auth_required") showLogin();
+      if (j.code === "password_change_required") showPasswordForm(true);
+    } catch (e) {}
     throw new Error(detail);
   }
   return res;
+}
+
+// ── sign-in / password change ──────────────────────────────────────────
+let appStarted = false;
+let currentUser = "";
+function showOverlay(which) {
+  $("auth-overlay").hidden = false;
+  $("login-form").hidden = which !== "login";
+  $("pw-form").hidden = which !== "pw";
+  $(which === "login" ? "login-user" : "pw-current").focus();
+}
+function showLogin() {
+  $("login-pass").value = ""; $("login-error").textContent = "";
+  $("btn-account").hidden = $("btn-logout").hidden = true;
+  showOverlay("login");
+}
+function showPasswordForm(forced) {
+  for (const id of ["pw-current", "pw-new", "pw-confirm"]) $(id).value = "";
+  $("pw-error").textContent = ""; $("pw-user").value = currentUser;
+  $("pw-forced").hidden = !forced; $("pw-cancel").hidden = forced;
+  $("pw-title").textContent = forced ? "Set a new password" : "Change password";
+  showOverlay("pw");
+}
+async function afterAuth(user) {
+  currentUser = user.username;
+  $("btn-account").hidden = $("btn-logout").hidden = false;
+  if (user.must_change) { showPasswordForm(true); return; }
+  $("auth-overlay").hidden = true;
+  if (!appStarted) { appStarted = true; await startApp(); }
+}
+async function postAuth(path, body) {
+  const res = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  let j = {};
+  try { j = await res.json(); } catch (e) {}
+  if (!res.ok) throw new Error(typeof j.detail === "string" ? j.detail : res.statusText);
+  return j;
+}
+function bindAuth() {
+  $("login-form").onsubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const r = await postAuth("/api/auth/login", { username: $("login-user").value.trim(), password: $("login-pass").value });
+      $("login-pass").value = "";
+      await afterAuth(r);
+    } catch (err) { $("login-error").textContent = err.message; }
+  };
+  $("pw-form").onsubmit = async (e) => {
+    e.preventDefault();
+    if ($("pw-new").value !== $("pw-confirm").value) { $("pw-error").textContent = "The new passwords do not match."; return; }
+    try {
+      await postAuth("/api/auth/password", { current_password: $("pw-current").value, new_password: $("pw-new").value });
+      await afterAuth({ username: currentUser, must_change: false });
+    } catch (err) { $("pw-error").textContent = err.message; }
+  };
+  $("pw-cancel").onclick = () => { $("auth-overlay").hidden = true; };
+  $("btn-account").onclick = () => showPasswordForm(false);
+  $("btn-logout").onclick = async () => {
+    try { await postAuth("/api/auth/logout", {}); } catch (e) {}
+    location.reload();
+  };
 }
 async function apiJson(path, body, method) { return (await api(path, body, method)).json(); }
 function toggleInfo(el, text) { el.hidden = false; setMd(el, text); }
@@ -217,6 +282,7 @@ async function uploadFiles(fileList) {
   for (const f of fileList) fd.append("files", f);
   try {
     const res = await fetch("/api/upload", { method: "POST", body: fd });
+    if (res.status === 401) { showLogin(); throw new Error("Session expired, sign in again."); }
     if (!res.ok) throw new Error(res.statusText);
     const r = await res.json();
     state.uploads.push(...r.files);
@@ -263,6 +329,7 @@ async function send() {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body), signal: state.controller.signal,
     });
+    if (res.status === 401) { showLogin(); throw new Error("Session expired, sign in again."); }
     if (!res.ok) throw new Error((await res.text()) || res.statusText);
     const reader = res.body.getReader();
     const dec = new TextDecoder();
@@ -351,6 +418,11 @@ function initTheme() {
 
 async function init() {
   initTheme();
+  bindAuth();
+  const me = await (await fetch("/api/auth/me")).json();
+  if (me.authenticated) await afterAuth(me); else showLogin();
+}
+async function startApp() {
   bindRange("temperature", "temperature-val", (v) => Number(v).toFixed(2));
   bindRange("stream-delay", "stream-delay-val");
   bindRange("search-max", "search-max-val");

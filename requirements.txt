@@ -1,5 +1,6 @@
 # Install editable: pip install -e .
 # Or: pip install -r requirements.txt
+cryptography>=42
 ddgs>=9.14.4
 fastapi>=0.110.0
 httpx>=0.27.0

@@ -2,7 +2,18 @@
 
 Format follows [Keep a Changelog](https://keepachangelog.com/); versions are git tags.
 
-## [Unreleased]
+## [0.4.0] — 2026-10-07
+### Added
+- **Authentication:** local accounts in `nonita_auth.db` (scrypt hashes), HttpOnly/SameSite=Strict session cookies, login throttle, same-origin check on writes. All `/api/*` except login/meta require a session.
+- Default `admin` / `admin` account that **must** change its password at first login (no length, complexity or must-differ rules; the new password just can't be empty); "Change password" and "Sign out" in the header; `nonita reset-password` for recovery.
+- `nonita gen-cert` creates an ECDSA P-384 / SHA-384 self-signed certificate; RSA keys are refused at startup. TLS limited to ECDHE + AEAD ciphers; HSTS over HTTPS.
+- `.env` loading (`.env.example` provided); `NONITA_CERT` / `NONITA_KEY`.
+- Dependency: `cryptography`.
+
+### Changed
+- Private defaults removed from the code: the Ollama host now defaults to `127.0.0.1` and the UI binds to `127.0.0.1` (was `0.0.0.0`). Put your values in `.env`. `nonita/config.txt` removed.
+
+## [Earlier, unreleased]
 ### Changed
 - **Renamed Toty → Nonita.** Package `toty_webui` is now `nonita`, the distribution/command `toty-webui` is now `nonita`.
 - Env vars `TOTY_*` are now `NONITA_*`; `toty_history.db` and `toty_conversation*` files are now `nonita_*`; browser storage keys `toty-webui.*` are now `nonita.*` (saved theme/settings reset once). Rename existing `.env` entries and the history DB to keep them.
@@ -53,4 +64,4 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); versions are git
 - Automated tests and a README; project placed under git.
 
 ### Fixed
-- Default Ollama host mismatch between code and docs; `127.0.0.1` is now the single default.
+- Default Ollama host mismatch between code and docs; the default is now defined in one place.

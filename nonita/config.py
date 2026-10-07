@@ -1,15 +1,40 @@
-"""Environment-driven defaults for Nonita Web UI."""
+"""Environment-driven settings for Nonita Web UI.
+
+Settings come from real environment variables, falling back to a ``.env`` file
+in the project root (see ``.env.example``). Real environment variables win.
+"""
 
 from __future__ import annotations
 
 import os
 from pathlib import Path
 
-# Fallback when OLLAMA_HOST / OLLAMA_PORT are unset (override via env at runtime).
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+
+def load_env_file(path: Path) -> None:
+    """Load KEY=VALUE lines from *path* into os.environ without overriding existing variables."""
+    try:
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return
+    for line in lines:
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key, value = key.strip(), value.strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
+            value = value[1:-1]
+        if key:
+            os.environ.setdefault(key, value)
+
+
+load_env_file(Path(os.environ.get("NONITA_ENV_FILE") or PROJECT_ROOT / ".env"))
+
+# Fallbacks when OLLAMA_HOST / OLLAMA_PORT are unset (set them in .env).
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 11434
-
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 
 def env_host() -> str:
@@ -63,8 +88,8 @@ def _env_first(*names: str) -> str:
 
 
 def server_host() -> str:
-    """Bind address (NONITA_HOST, legacy GRADIO_SERVER_NAME); default 0.0.0.0 (LAN-wide)."""
-    return _env_first("NONITA_HOST", "GRADIO_SERVER_NAME") or "0.0.0.0"
+    """Bind address (NONITA_HOST, legacy GRADIO_SERVER_NAME); default 127.0.0.1 (this machine only)."""
+    return _env_first("NONITA_HOST", "GRADIO_SERVER_NAME") or "127.0.0.1"
 
 
 def server_port() -> int:
@@ -81,10 +106,23 @@ def env_debug_mode() -> bool:
     return os.environ.get("NONITA_DEBUG", "").lower() in ("1", "true", "yes")
 
 
+def cert_paths() -> tuple[Path, Path]:
+    """Certificate and key paths (NONITA_CERT / NONITA_KEY, default cert.pem / key.pem in the project root)."""
+    cert = Path(os.environ.get("NONITA_CERT") or PROJECT_ROOT / "cert.pem")
+    key = Path(os.environ.get("NONITA_KEY") or PROJECT_ROOT / "key.pem")
+    return cert, key
+
+
 def ssl_launch_kwargs() -> dict[str, str]:
-    """Enable HTTPS (uvicorn kwargs) when cert.pem and key.pem exist beside the project root."""
-    cert = PROJECT_ROOT / "cert.pem"
-    key = PROJECT_ROOT / "key.pem"
-    if cert.is_file() and key.is_file():
-        return {"ssl_certfile": str(cert), "ssl_keyfile": str(key)}
-    return {}
+    """HTTPS uvicorn kwargs when the certificate and key exist.
+
+    Only elliptic-curve keys are accepted (RSA is refused) and the cipher list is
+    limited to ECDHE with AES-GCM / ChaCha20-Poly1305 (TLS 1.3 suites are always on).
+    """
+    from nonita.tls import STRONG_CIPHERS, require_ec_key
+
+    cert, key = cert_paths()
+    if not (cert.is_file() and key.is_file()):
+        return {}
+    require_ec_key(key)
+    return {"ssl_certfile": str(cert), "ssl_keyfile": str(key), "ssl_ciphers": STRONG_CIPHERS}

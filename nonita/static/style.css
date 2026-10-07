@@ -259,3 +259,18 @@ details.thought > summary { cursor: pointer; font-weight: 600; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
 @media print { #app-header, #sessions-rail, #sidebar, #composer, #footer-row, #app-footer { display: none; } #app { height: auto; } #chat { overflow: visible; } }
+
+/* Sign-in / forced password change */
+#auth-overlay { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center;
+  padding: 16px; background: var(--bg); overflow-y: auto; }
+#auth-overlay[hidden] { display: none; }
+.auth-card { width: min(400px, 100%); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: var(--shadow); padding: 24px; display: flex; flex-direction: column; gap: 14px; }
+.auth-card form { display: flex; flex-direction: column; gap: 12px; }
+.auth-card form[hidden] { display: none; }
+.auth-card h1 { font-size: 20px; margin: 0; }
+.auth-brand { display: flex; align-items: center; gap: 10px; font-size: 18px; }
+.auth-error { color: var(--danger); font-size: 13.5px; min-height: 1.2em; }
+.auth-card .hint { margin: 0; }
+.grow { flex: 1; }
+.header-right #btn-account[hidden], .header-right #btn-logout[hidden] { display: none; }

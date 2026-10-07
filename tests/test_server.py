@@ -4,22 +4,31 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from nonita import __version__, history, server
+from nonita import __version__, auth, history, server
 from nonita.client import ChatStreamEvent, OllamaClient
 
 STATIC = Path(server.STATIC_DIR)
 
 
 @pytest.fixture()
-def client(tmp_path, monkeypatch):
+def client(tmp_path, monkeypatch, request):
     monkeypatch.setattr(history, "DB_PATH", tmp_path / "h.db")
     monkeypatch.setattr(server, "UPLOAD_DIR", tmp_path / "up")
-    return TestClient(server.app)
+    monkeypatch.setattr(auth, "DB_PATH", tmp_path / "auth.db")
+    monkeypatch.setattr(auth, "_SCRYPT_N", 2**10)  # fast hashing in tests
+    monkeypatch.setattr(auth, "_fails", {})
+    c = TestClient(server.app)
+    if getattr(request, "param", "login") != "anon":
+        r = c.post("/api/auth/login", json={"username": "admin", "password": "admin"})
+        assert r.json()["must_change"] is True
+        r = c.post("/api/auth/password", json={"current_password": "admin", "new_password": "correct-horse-9"})
+        assert r.status_code == 200
+    return c
 
 
 def test_meta_has_version_and_telegram(client):
     r = client.get("/api/meta").json()
-    assert r["version"] == __version__ == "0.3.1"
+    assert r["version"] == __version__ == "0.4.0"
     assert r["telegram"] == "@augustmd" and r["telegram_url"] == "https://t.me/augustmd"
 
 
@@ -115,3 +124,72 @@ def test_sessions_crud_and_wipe(client):
     assert client.delete("/api/sessions?confirm=true").json()["deleted"] == 1
     assert client.get(f"/api/sessions/{cid}").status_code == 404
     assert client.post("/api/sessions", json={"messages": []}).status_code == 422
+
+
+# ── authentication ────────────────────────────────────────────────────────
+@pytest.fixture()
+def anon(tmp_path, monkeypatch):
+    monkeypatch.setattr(history, "DB_PATH", tmp_path / "h.db")
+    monkeypatch.setattr(auth, "DB_PATH", tmp_path / "auth.db")
+    monkeypatch.setattr(auth, "_SCRYPT_N", 2**10)
+    monkeypatch.setattr(auth, "_fails", {})
+    return TestClient(server.app)
+
+
+def test_api_requires_login_but_static_and_meta_do_not(anon):
+    assert anon.get("/api/config").status_code == 401
+    assert anon.get("/api/sessions").json()["code"] == "auth_required"
+    assert anon.get("/api/meta").status_code == 200
+    assert anon.get("/").status_code == 200 and anon.get("/static/app.js").status_code == 200
+    assert anon.get("/api/auth/me").json() == {"authenticated": False}
+
+
+def test_default_admin_must_change_password_first(anon):
+    assert anon.post("/api/auth/login", json={"username": "admin", "password": "nope"}).status_code == 401
+    r = anon.post("/api/auth/login", json={"username": "admin", "password": "admin"})
+    assert r.status_code == 200 and r.json()["must_change"] is True
+    set_cookie = r.headers["set-cookie"].lower()
+    assert "httponly" in set_cookie and "samesite=strict" in set_cookie
+    blocked = anon.get("/api/config")
+    assert blocked.status_code == 403 and blocked.json()["code"] == "password_change_required"
+    assert anon.get("/api/auth/me").json()["must_change"] is True
+
+    for bad in ("",):
+        assert anon.post("/api/auth/password", json={"current_password": "admin", "new_password": bad}).status_code == 422
+    assert anon.post("/api/auth/password", json={"current_password": "wrong", "new_password": "a-good-passphrase"}).status_code == 422
+    assert anon.post("/api/auth/password", json={"current_password": "admin", "new_password": "x"}).status_code == 200
+    assert anon.get("/api/config").status_code == 200
+    # old password is dead, new one works
+    anon.post("/api/auth/logout")
+    assert anon.get("/api/config").status_code == 401
+    assert anon.post("/api/auth/login", json={"username": "admin", "password": "admin"}).status_code == 401
+    r = anon.post("/api/auth/login", json={"username": "admin", "password": "x"})
+    assert r.json()["must_change"] is False
+
+
+def test_password_change_revokes_other_sessions(anon, tmp_path):
+    anon.post("/api/auth/login", json={"username": "admin", "password": "admin"})
+    anon.post("/api/auth/password", json={"current_password": "admin", "new_password": "first-passphrase"})
+    other = TestClient(server.app)
+    other.post("/api/auth/login", json={"username": "admin", "password": "first-passphrase"})
+    assert other.get("/api/config").status_code == 200
+    anon.post("/api/auth/password", json={"current_password": "first-passphrase", "new_password": "second-passphrase"})
+    assert other.get("/api/config").status_code == 401
+    assert anon.get("/api/config").status_code == 200
+
+
+def test_login_throttle(anon):
+    for _ in range(5):
+        assert anon.post("/api/auth/login", json={"username": "admin", "password": "bad"}).status_code == 401
+    assert anon.post("/api/auth/login", json={"username": "admin", "password": "admin"}).status_code == 429
+
+
+def test_cross_origin_post_blocked(client):
+    r = client.post("/api/ping", json={"host": "x"}, headers={"Origin": "https://evil.example"})
+    assert r.status_code == 403
+
+
+def test_password_is_hashed_at_rest(anon, tmp_path):
+    anon.post("/api/auth/login", json={"username": "admin", "password": "admin"})
+    raw = (tmp_path / "auth.db").read_bytes()
+    assert b"scrypt$" in raw
