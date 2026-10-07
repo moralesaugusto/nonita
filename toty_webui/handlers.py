@@ -195,7 +195,7 @@ def stream_events(
 ) -> Iterator[dict[str, Any]]:
     """Run one chat turn and yield JSON-serialisable events.
 
-    Event types: ``status`` (text), ``thinking`` (text chunk), ``text`` (text chunk),
+    Event types: ``status`` (text), ``search`` (count), ``thinking`` (text chunk), ``text`` (text chunk),
     ``done`` (metrics, debug, footer, usage) and ``error`` (message, plus metrics/debug
     when the failure happened mid-request). Closing the generator (client
     disconnect = Stop) closes the upstream HTTP stream.
@@ -231,6 +231,8 @@ def stream_events(
         results = web_search(msg_text, max_results=max(1, max_results))
         search_result_count = len(results)
         search_ctx = format_search_context(msg_text, results)
+        # Only the count is reported to the UI — never the results themselves.
+        yield {"type": "search", "count": search_result_count}
 
     sys_text = _text(system_prompt).strip()
     messages: list[dict[str, str]] = []

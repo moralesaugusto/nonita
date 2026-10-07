@@ -70,6 +70,12 @@ function renderMessage(m, live) {
   else setMd(body, m.content);
   bubble.appendChild(body);
   div.append(who, bubble);
+  if (m.searchNote) {
+    const n = document.createElement("div");
+    n.className = "search-note" + (m.searchEmpty ? " warn" : "");
+    n.textContent = m.searchNote;
+    div.appendChild(n);
+  }
   if (m.footer) {
     const f = document.createElement("div");
     f.className = "footer";
@@ -187,6 +193,10 @@ async function openSession(id) {
     renderChat(); convBar(); $("history-status").textContent = `Opened conversation #${id}.`;
   } catch (e) { $("history-status").textContent = e.message; }
 }
+// Messages sent to save/export: no errors, no transient search notes (search stays ephemeral).
+function persistable() {
+  return state.history.filter((m) => !m.error).map(({ searchNote, searchEmpty, ...rest }) => rest);
+}
 function newConversation() {
   stopStream();
   state.history = []; state.convId = null; state.usage = { prompt: 0, completion: 0, turns: 0 };
@@ -228,7 +238,7 @@ function stopStream() { if (state.controller) state.controller.abort(); }
 async function send() {
   const text = $("msg").value.trim();
   if (!text || state.controller) return;
-  const prior = state.history.filter((m) => !m.error).map(({ role, content }) => ({ role, content }));
+  const prior = persistable().map(({ role, content }) => ({ role, content }));
   state.history.push({ role: "user", content: text });
   const reply = { role: "assistant", content: "" };
   state.history.push(reply);
@@ -259,7 +269,12 @@ async function send() {
     let buf = "";
     const handle = (ev) => {
       if (ev.type === "status") { setMd($("metrics-bar"), ev.text); return; }
-      if (ev.type === "thinking") {
+      if (ev.type === "search") {
+        reply.searchNote = ev.count > 0
+          ? `Web search: ${ev.count} result${ev.count === 1 ? "" : "s"} used`
+          : "Web search returned no results (rate-limited, timed out or offline) — answered without it";
+        reply.searchEmpty = ev.count === 0;
+      } else if (ev.type === "thinking") {
         if (thinkStart === null) thinkStart = performance.now();
         reply.thinking = (reply.thinking || "") + ev.text;
       } else if (ev.type === "text") {
@@ -375,7 +390,7 @@ async function init() {
   $("btn-save").onclick = async () => {
     if (!state.history.length) { $("history-status").textContent = "Nothing to save — chat is empty."; return; }
     try {
-      const messages = state.history.filter((m) => !m.error);
+      const messages = persistable();
       const r = await apiJson("/api/sessions", { conv_id: state.convId, model: $("model-input").value || null, messages });
       state.convId = r.id; await loadSessions(); $("history-status").textContent = `Saved conversation #${r.id}.`;
     } catch (e) { $("history-status").textContent = e.message; }
@@ -396,7 +411,7 @@ async function init() {
   $("btn-export-txt").onclick = async () => {
     if (!state.history.length) { $("history-status").textContent = "Nothing to export — chat is empty."; return; }
     try {
-      const messages = state.history.filter((m) => !m.error);
+      const messages = persistable();
       await download(await api("/api/export", { model: $("model-input").value || null, messages }), "toty_conversation.txt");
       $("history-status").textContent = "Exported current chat.";
     } catch (e) { $("history-status").textContent = e.message; }

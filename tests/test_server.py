@@ -19,7 +19,7 @@ def client(tmp_path, monkeypatch):
 
 def test_meta_has_version_and_telegram(client):
     r = client.get("/api/meta").json()
-    assert r["version"] == __version__ == "0.3"
+    assert r["version"] == __version__ == "0.3.1"
     assert r["telegram"] == "@augustmd" and r["telegram_url"] == "https://t.me/augustmd"
 
 
@@ -68,6 +68,20 @@ def test_chat_stream_events(client, monkeypatch):
     ev = _chat(client)
     assert [e["type"] for e in ev] == ["thinking", "text", "text", "done"]
     assert ev[-1]["usage"] == {"prompt": 3, "completion": 2}
+
+
+def test_chat_search_reports_count_not_results(client, monkeypatch):
+    from toty_webui import handlers
+    from toty_webui.search import SearchResult
+
+    monkeypatch.setattr(handlers, "web_search", lambda q, max_results=4: [SearchResult("T", "http://u", "secret snippet")])
+    monkeypatch.setattr(OllamaClient, "stream_chat", lambda self, **kw: iter([ChatStreamEvent(text="x"), ChatStreamEvent(done=True, stats={})]))
+    ev = _chat(client, search_enabled=True)
+    found = [e for e in ev if e["type"] == "search"]
+    assert found == [{"type": "search", "count": 1}]
+    assert "secret snippet" not in json.dumps(ev)
+    monkeypatch.setattr(handlers, "web_search", lambda q, max_results=4: [])
+    assert [e for e in _chat(client, search_enabled=True) if e["type"] == "search"][0]["count"] == 0
 
 
 def test_chat_errors(client, monkeypatch):

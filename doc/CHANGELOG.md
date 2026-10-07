@@ -2,6 +2,11 @@
 
 Format follows [Keep a Changelog](https://keepachangelog.com/); versions are git tags.
 
+## [0.3.1] — 2026-10-07
+### Fixed
+- Web search no longer fails silently: each reply shows "Web search: N results used", or a warning when the search returned nothing (rate-limited, timed out or offline).
+- Only the result count is sent to the browser; results stay ephemeral, and the note is not saved or exported.
+
 ## [0.3] — 2026-10-07
 ### Changed
 - **UI redesign (watermelon theme):** rind green, flesh red, seed black on cream; light and dark themes (follows the OS, toggle in the header, remembered per browser).
