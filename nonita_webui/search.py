@@ -3,7 +3,7 @@
 Results are only ever folded into the outbound Ollama request as a one-turn
 system-context block, the same way file attachments are — they are never
 appended to the visible chat history, so they're never written to
-toty_history.db, exported, or persisted anywhere.
+nonita_history.db, exported, or persisted anywhere.
 """
 
 from __future__ import annotations

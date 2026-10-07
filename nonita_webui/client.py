@@ -10,8 +10,8 @@ from typing import Any
 
 import httpx
 
-from toty_webui.config import DEFAULT_PORT, DEFAULT_TIMEOUT
-from toty_webui.connection import parse_connection
+from nonita_webui.config import DEFAULT_PORT, DEFAULT_TIMEOUT
+from nonita_webui.connection import parse_connection
 
 logger = logging.getLogger(__name__)
 

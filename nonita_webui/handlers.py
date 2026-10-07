@@ -8,11 +8,11 @@ from datetime import datetime, timezone
 from collections.abc import Iterator
 from typing import Any
 
-from toty_webui.config import env_timeout
-from toty_webui.connection import parse_connection
-from toty_webui.client import OllamaClient, messages_to_ollama
-from toty_webui.files import ingest_upload_paths, normalize_upload_paths
-from toty_webui.metrics import (
+from nonita_webui.config import env_timeout
+from nonita_webui.connection import parse_connection
+from nonita_webui.client import OllamaClient, messages_to_ollama
+from nonita_webui.files import ingest_upload_paths, normalize_upload_paths
+from nonita_webui.metrics import (
     ChatTurnMetrics,
     RequestDebugInfo,
     empty_metrics_display,
@@ -20,7 +20,7 @@ from toty_webui.metrics import (
     format_live_metrics,
     format_metrics_summary,
 )
-from toty_webui.search import format_search_context, web_search
+from nonita_webui.search import format_search_context, web_search
 
 logger = logging.getLogger(__name__)
 

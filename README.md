@@ -1,12 +1,12 @@
-# Toty Web UI
+# Nonita Web UI
 
-Web frontend (FastAPI + plain HTML/JS) for a remote Ollama server. Current version: see `toty_webui/__init__.py` (also shown at the bottom of the page). Contact: Telegram [@augustmd](https://t.me/augustmd).
+Web frontend (FastAPI + plain HTML/JS) for a remote Ollama server. Current version: see `nonita_webui/__init__.py` (also shown at the bottom of the page). Contact: Telegram [@augustmd](https://t.me/augustmd).
 
 ## Run
 
 ```
-uv sync            # or: pip install -e .
-python -m toty_webui   # or: toty-webui
+uv sync
+uv run nonita-webui
 ```
 Then open `http(s)://<host>:7860/`.
 
@@ -17,10 +17,10 @@ Then open `http(s)://<host>:7860/`.
 | `OLLAMA_HOST` | `127.0.0.1` | Hostname/IP or full `http(s)://` URL |
 | `OLLAMA_PORT` | `11434` | Port 1–65535 (ignored if host is a full URL) |
 | `OLLAMA_TIMEOUT` | `120` | Request timeout, seconds |
-| `TOTY_MAX_UPLOAD_MB` | `20` | Per-file attachment size limit |
-| `TOTY_HOST` | `0.0.0.0` | Bind address (legacy: `GRADIO_SERVER_NAME`) |
-| `TOTY_PORT` | `7860` | UI port (legacy: `GRADIO_SERVER_PORT`) |
-| `TOTY_DEBUG` | off | Show the debug panel by default |
+| `NONITA_MAX_UPLOAD_MB` | `20` | Per-file attachment size limit |
+| `NONITA_HOST` | `0.0.0.0` | Bind address (legacy: `GRADIO_SERVER_NAME`) |
+| `NONITA_PORT` | `7860` | UI port (legacy: `GRADIO_SERVER_PORT`) |
+| `NONITA_DEBUG` | off | Show the debug panel by default |
 
 Host/port entered in the Connection panel can be saved per browser (Save / Reset / Forget); they live in that browser's `localStorage` only.
 

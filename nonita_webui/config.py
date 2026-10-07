@@ -1,4 +1,4 @@
-"""Environment-driven defaults for Toty Web UI."""
+"""Environment-driven defaults for Nonita Web UI."""
 
 from __future__ import annotations
 
@@ -40,8 +40,8 @@ def env_timeout() -> float:
 
 
 def env_max_upload_bytes() -> int:
-    """Per-file upload cap from TOTY_MAX_UPLOAD_MB (default 20 MB)."""
-    raw = os.environ.get("TOTY_MAX_UPLOAD_MB", "").strip()
+    """Per-file upload cap from NONITA_MAX_UPLOAD_MB (default 20 MB)."""
+    raw = os.environ.get("NONITA_MAX_UPLOAD_MB", "").strip()
     try:
         mb = float(raw)
     except ValueError:
@@ -63,13 +63,13 @@ def _env_first(*names: str) -> str:
 
 
 def server_host() -> str:
-    """Bind address (TOTY_HOST, legacy GRADIO_SERVER_NAME); default 0.0.0.0 (LAN-wide)."""
-    return _env_first("TOTY_HOST", "GRADIO_SERVER_NAME") or "0.0.0.0"
+    """Bind address (NONITA_HOST, legacy GRADIO_SERVER_NAME); default 0.0.0.0 (LAN-wide)."""
+    return _env_first("NONITA_HOST", "GRADIO_SERVER_NAME") or "0.0.0.0"
 
 
 def server_port() -> int:
-    """UI port (TOTY_PORT, legacy GRADIO_SERVER_PORT); default 7860."""
-    raw = _env_first("TOTY_PORT", "GRADIO_SERVER_PORT")
+    """UI port (NONITA_PORT, legacy GRADIO_SERVER_PORT); default 7860."""
+    raw = _env_first("NONITA_PORT", "GRADIO_SERVER_PORT")
     try:
         value = int(raw)
     except ValueError:
@@ -78,7 +78,7 @@ def server_port() -> int:
 
 
 def env_debug_mode() -> bool:
-    return os.environ.get("TOTY_DEBUG", "").lower() in ("1", "true", "yes")
+    return os.environ.get("NONITA_DEBUG", "").lower() in ("1", "true", "yes")
 
 
 def ssl_launch_kwargs() -> dict[str, str]:

@@ -3,7 +3,7 @@ import json
 import httpx
 import pytest
 
-from toty_webui.client import OllamaClient
+from nonita_webui.client import OllamaClient
 
 
 class FakeResponse:

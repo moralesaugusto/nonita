@@ -1,4 +1,4 @@
-from toty_webui import config
+from nonita_webui import config
 
 
 def test_env_port_invalid_falls_back(monkeypatch):
@@ -27,7 +27,7 @@ def test_env_timeout(monkeypatch):
 
 
 def test_env_max_upload(monkeypatch):
-    monkeypatch.setenv("TOTY_MAX_UPLOAD_MB", "1")
+    monkeypatch.setenv("NONITA_MAX_UPLOAD_MB", "1")
     assert config.env_max_upload_bytes() == 1024 * 1024
-    monkeypatch.setenv("TOTY_MAX_UPLOAD_MB", "junk")
+    monkeypatch.setenv("NONITA_MAX_UPLOAD_MB", "junk")
     assert config.env_max_upload_bytes() == 20 * 1024 * 1024

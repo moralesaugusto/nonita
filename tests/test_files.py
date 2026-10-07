@@ -1,8 +1,8 @@
-from toty_webui.files import ingest_upload_paths
+from nonita_webui.files import ingest_upload_paths
 
 
 def test_oversized_file_skipped(tmp_path, monkeypatch):
-    monkeypatch.setenv("TOTY_MAX_UPLOAD_MB", "0.001")
+    monkeypatch.setenv("NONITA_MAX_UPLOAD_MB", "0.001")
     big = tmp_path / "big.txt"
     big.write_text("x" * 5000)
     out = ingest_upload_paths([str(big)])

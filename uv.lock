@@ -844,7 +844,7 @@ wheels = [
 ]
 
 [[package]]
-name = "toty-webui"
+name = "nonita-webui"
 source = { editable = "." }
 dependencies = [
     { name = "ddgs" },

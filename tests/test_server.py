@@ -4,8 +4,8 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from toty_webui import __version__, history, server
-from toty_webui.client import ChatStreamEvent, OllamaClient
+from nonita_webui import __version__, history, server
+from nonita_webui.client import ChatStreamEvent, OllamaClient
 
 STATIC = Path(server.STATIC_DIR)
 
@@ -71,8 +71,8 @@ def test_chat_stream_events(client, monkeypatch):
 
 
 def test_chat_search_reports_count_not_results(client, monkeypatch):
-    from toty_webui import handlers
-    from toty_webui.search import SearchResult
+    from nonita_webui import handlers
+    from nonita_webui.search import SearchResult
 
     monkeypatch.setattr(handlers, "web_search", lambda q, max_results=4: [SearchResult("T", "http://u", "secret snippet")])
     monkeypatch.setattr(OllamaClient, "stream_chat", lambda self, **kw: iter([ChatStreamEvent(text="x"), ChatStreamEvent(done=True, stats={})]))
@@ -98,7 +98,7 @@ def test_chat_errors(client, monkeypatch):
 
 
 def test_upload_cap_and_context(client, monkeypatch):
-    monkeypatch.setenv("TOTY_MAX_UPLOAD_MB", "0.001")
+    monkeypatch.setenv("NONITA_MAX_UPLOAD_MB", "0.001")
     r = client.post("/api/upload", files=[("files", ("big.txt", b"x" * 5000)), ("files", ("s.txt", b"ok"))]).json()
     assert [f["name"] for f in r["files"]] == ["s.txt"] and r["rejected"][0]["name"] == "big.txt"
     assert server._resolve_uploads([r["files"][0]["id"], "../etc"])[0].endswith("s.txt")

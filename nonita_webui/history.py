@@ -12,10 +12,10 @@ import tempfile
 from datetime import datetime, timezone
 from typing import Any
 
-from toty_webui.client import content_to_text
-from toty_webui.config import PROJECT_ROOT
+from nonita_webui.client import content_to_text
+from nonita_webui.config import PROJECT_ROOT
 
-DB_PATH = PROJECT_ROOT / "toty_history.db"
+DB_PATH = PROJECT_ROOT / "nonita_history.db"
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS conversations (
@@ -147,7 +147,7 @@ def export_to_txt(messages: list[dict[str, Any]], model: str | None = None) -> s
         lines.append(f"\n[{role}]\n{content}")
     text = "\n".join(lines)
 
-    fd, path = tempfile.mkstemp(prefix="toty_conversation_", suffix=".txt")
+    fd, path = tempfile.mkstemp(prefix="nonita_conversation_", suffix=".txt")
     with open(fd, "w", encoding="utf-8") as fh:
         fh.write(text)
     return path

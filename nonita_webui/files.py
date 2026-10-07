@@ -7,7 +7,7 @@ from pathlib import Path
 
 from pypdf import PdfReader
 
-from toty_webui.config import env_max_upload_bytes
+from nonita_webui.config import env_max_upload_bytes
 
 logger = logging.getLogger(__name__)
 
@@ -87,7 +87,7 @@ def ingest_upload_paths(
         if size > max_bytes:
             blocks.append(
                 f"### {path.name}\n\n[Skipped: file is {size / 1_048_576:.1f} MB, "
-                f"over the {max_bytes / 1_048_576:.0f} MB upload limit (TOTY_MAX_UPLOAD_MB).]"
+                f"over the {max_bytes / 1_048_576:.0f} MB upload limit (NONITA_MAX_UPLOAD_MB).]"
             )
             continue
 

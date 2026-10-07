@@ -1,6 +1,6 @@
 import pytest
 
-from toty_webui.connection import parse_connection, parse_port
+from nonita_webui.connection import parse_connection, parse_port
 
 
 def test_bare_host_gets_port():

@@ -1,6 +1,6 @@
 "use strict";
 
-const SETTINGS_KEY = "toty-webui.settings.v1";
+const SETTINGS_KEY = "nonita-webui.settings.v1";
 const $ = (id) => document.getElementById(id);
 
 const state = {
@@ -339,13 +339,13 @@ function applyTheme(t) {
 }
 function initTheme() {
   let t = null;
-  try { t = localStorage.getItem("toty-webui.theme"); } catch (e) {}
+  try { t = localStorage.getItem("nonita-webui.theme"); } catch (e) {}
   if (t !== "light" && t !== "dark") t = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
   applyTheme(t);
   $("theme-toggle").onclick = () => {
     const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
     applyTheme(next);
-    try { localStorage.setItem("toty-webui.theme", next); } catch (e) {}
+    try { localStorage.setItem("nonita-webui.theme", next); } catch (e) {}
   };
 }
 
@@ -405,14 +405,14 @@ async function init() {
   };
   $("btn-export-session").onclick = async () => {
     if (state.selectedSession == null) { $("history-status").textContent = "Pick a conversation first."; return; }
-    try { await download(await api(`/api/sessions/${state.selectedSession}/export`), `toty_conversation_${state.selectedSession}.txt`); }
+    try { await download(await api(`/api/sessions/${state.selectedSession}/export`), `nonita_conversation_${state.selectedSession}.txt`); }
     catch (e) { $("history-status").textContent = e.message; }
   };
   $("btn-export-txt").onclick = async () => {
     if (!state.history.length) { $("history-status").textContent = "Nothing to export — chat is empty."; return; }
     try {
       const messages = persistable();
-      await download(await api("/api/export", { model: $("model-input").value || null, messages }), "toty_conversation.txt");
+      await download(await api("/api/export", { model: $("model-input").value || null, messages }), "nonita_conversation.txt");
       $("history-status").textContent = "Exported current chat.";
     } catch (e) { $("history-status").textContent = e.message; }
   };

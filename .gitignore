@@ -6,5 +6,5 @@ __pycache__/
 .env
 cert.pem
 key.pem
-toty_history.db
+nonita_history.db
 exports/

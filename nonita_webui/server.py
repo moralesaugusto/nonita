@@ -17,9 +17,9 @@ from fastapi.responses import FileResponse, JSONResponse, Response, StreamingRes
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from toty_webui import __version__
-from toty_webui import history as history_store
-from toty_webui.config import (
+from nonita_webui import __version__
+from nonita_webui import history as history_store
+from nonita_webui.config import (
     DEFAULT_HOST,
     env_debug_mode,
     env_host,
@@ -29,8 +29,8 @@ from toty_webui.config import (
     server_port,
     ssl_launch_kwargs,
 )
-from toty_webui.connection import parse_connection
-from toty_webui.handlers import (
+from nonita_webui.connection import parse_connection
+from nonita_webui.handlers import (
     fetch_models,
     list_loaded_models,
     ollama_server_info,
@@ -41,16 +41,16 @@ from toty_webui.handlers import (
     unload_all_loaded_models,
     unload_model,
 )
-from toty_webui.metrics import empty_metrics_display
+from nonita_webui.metrics import empty_metrics_display
 
 logger = logging.getLogger(__name__)
 
-APP_TITLE = "Toty Web UI"
+APP_TITLE = "Nonita Web UI"
 TELEGRAM_HANDLE = "@augustmd"
 TELEGRAM_URL = "https://t.me/augustmd"
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
-UPLOAD_DIR = Path(tempfile.gettempdir()) / "toty_uploads"
+UPLOAD_DIR = Path(tempfile.gettempdir()) / "nonita_uploads"
 _UPLOAD_ID = re.compile(r"^[0-9a-f]{32}$")
 
 app = FastAPI(title=APP_TITLE, version=__version__)
@@ -213,7 +213,7 @@ async def upload(files: list[UploadFile] = File(...)) -> dict[str, Any]:
         if too_big:
             shutil.rmtree(folder, ignore_errors=True)
             rejected.append(
-                {"name": name, "reason": f"over the {limit / 1_048_576:.0f} MB upload limit (TOTY_MAX_UPLOAD_MB)"}
+                {"name": name, "reason": f"over the {limit / 1_048_576:.0f} MB upload limit (NONITA_MAX_UPLOAD_MB)"}
             )
             continue
         saved.append({"id": upload_id, "name": name, "size": size})
@@ -304,7 +304,7 @@ def _txt_response(path: str | None) -> Response:
     return Response(
         body,
         media_type="text/plain; charset=utf-8",
-        headers={"Content-Disposition": 'attachment; filename="toty_conversation.txt"'},
+        headers={"Content-Disposition": 'attachment; filename="nonita_conversation.txt"'},
     )
 
 
