@@ -1,5 +1,5 @@
 [project]
-name = "nonita-webui"
+name = "nonita"
 dynamic = ["version"]
 description = "Web frontend (FastAPI + HTML) for a remote Ollama host"
 requires-python = ">=3.11"
@@ -13,21 +13,21 @@ dependencies = [
 ]
 
 [project.scripts]
-nonita-webui = "nonita_webui.server:main"
+nonita = "nonita.server:main"
 
 [build-system]
 requires = ["setuptools>=69.0"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.dynamic]
-version = {attr = "nonita_webui.__version__"}
+version = {attr = "nonita.__version__"}
 
 [tool.setuptools.package-data]
-nonita_webui = ["static/**/*"]
+nonita = ["static/**/*"]
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["nonita_webui*"]
+include = ["nonita*"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0.0"]

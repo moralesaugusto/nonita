@@ -10,8 +10,8 @@ from typing import Any
 
 import httpx
 
-from nonita_webui.config import DEFAULT_PORT, DEFAULT_TIMEOUT
-from nonita_webui.connection import parse_connection
+from nonita.config import DEFAULT_PORT, DEFAULT_TIMEOUT
+from nonita.connection import parse_connection
 
 logger = logging.getLogger(__name__)
 

@@ -1,4 +1,4 @@
-from nonita_webui.server import main
+from nonita.server import main
 
 if __name__ == "__main__":
     main()

@@ -4,8 +4,8 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from nonita_webui import __version__, history, server
-from nonita_webui.client import ChatStreamEvent, OllamaClient
+from nonita import __version__, history, server
+from nonita.client import ChatStreamEvent, OllamaClient
 
 STATIC = Path(server.STATIC_DIR)
 
@@ -71,8 +71,8 @@ def test_chat_stream_events(client, monkeypatch):
 
 
 def test_chat_search_reports_count_not_results(client, monkeypatch):
-    from nonita_webui import handlers
-    from nonita_webui.search import SearchResult
+    from nonita import handlers
+    from nonita.search import SearchResult
 
     monkeypatch.setattr(handlers, "web_search", lambda q, max_results=4: [SearchResult("T", "http://u", "secret snippet")])
     monkeypatch.setattr(OllamaClient, "stream_chat", lambda self, **kw: iter([ChatStreamEvent(text="x"), ChatStreamEvent(done=True, stats={})]))

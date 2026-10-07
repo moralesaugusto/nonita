@@ -7,7 +7,7 @@ from pathlib import Path
 
 from pypdf import PdfReader
 
-from nonita_webui.config import env_max_upload_bytes
+from nonita.config import env_max_upload_bytes
 
 logger = logging.getLogger(__name__)
 

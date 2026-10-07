@@ -17,9 +17,9 @@ from fastapi.responses import FileResponse, JSONResponse, Response, StreamingRes
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from nonita_webui import __version__
-from nonita_webui import history as history_store
-from nonita_webui.config import (
+from nonita import __version__
+from nonita import history as history_store
+from nonita.config import (
     DEFAULT_HOST,
     env_debug_mode,
     env_host,
@@ -29,8 +29,8 @@ from nonita_webui.config import (
     server_port,
     ssl_launch_kwargs,
 )
-from nonita_webui.connection import parse_connection
-from nonita_webui.handlers import (
+from nonita.connection import parse_connection
+from nonita.handlers import (
     fetch_models,
     list_loaded_models,
     ollama_server_info,
@@ -41,7 +41,7 @@ from nonita_webui.handlers import (
     unload_all_loaded_models,
     unload_model,
 )
-from nonita_webui.metrics import empty_metrics_display
+from nonita.metrics import empty_metrics_display
 
 logger = logging.getLogger(__name__)
 

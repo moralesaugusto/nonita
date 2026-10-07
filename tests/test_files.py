@@ -1,4 +1,4 @@
-from nonita_webui.files import ingest_upload_paths
+from nonita.files import ingest_upload_paths
 
 
 def test_oversized_file_skipped(tmp_path, monkeypatch):

@@ -4,9 +4,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); versions are git
 
 ## [Unreleased]
 ### Changed
-- **Renamed Toty → Nonita.** Package `toty_webui` is now `nonita_webui`, the distribution/command `toty-webui` is now `nonita-webui`.
-- Env vars `TOTY_*` are now `NONITA_*`; `toty_history.db` and `toty_conversation*` files are now `nonita_*`; browser storage keys `toty-webui.*` are now `nonita-webui.*` (saved theme/settings reset once). Rename existing `.env` entries and the history DB to keep them.
-- Project is run with uv only (`uv sync`, `uv run nonita-webui`); `nonita.sh` fixed to do this.
+- **Renamed Toty → Nonita.** Package `toty_webui` is now `nonita`, the distribution/command `toty-webui` is now `nonita`.
+- Env vars `TOTY_*` are now `NONITA_*`; `toty_history.db` and `toty_conversation*` files are now `nonita_*`; browser storage keys `toty-webui.*` are now `nonita.*` (saved theme/settings reset once). Rename existing `.env` entries and the history DB to keep them.
+- Project is run with uv only (`uv sync`, `uv run nonita`); `nonita.sh` fixed to do this.
 
 ## [0.3.1] — 2026-10-07
 ### Fixed
@@ -27,12 +27,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); versions are git
 
 ## [0.2] — 2026-10-07
 ### Changed
-- **Gradio removed.** The app is now a FastAPI backend (`nonita_webui/server.py`) serving a plain HTML/CSS/JS page (`nonita_webui/static/`).
+- **Gradio removed.** The app is now a FastAPI backend (`nonita/server.py`) serving a plain HTML/CSS/JS page (`nonita/static/`).
 - Chat replies stream as NDJSON; Stop aborts the request in the browser.
 - Token/timing footer is stored separately from the reply text and no longer re-sent to the model.
 - Server settings: `NONITA_HOST` / `NONITA_PORT` (legacy `GRADIO_SERVER_*` names still accepted); default port 7860.
 - Dependencies: dropped `gradio`; added `fastapi`, `uvicorn`, `python-multipart`.
-- Version now has a single source, `nonita_webui.__version__`.
+- Version now has a single source, `nonita.__version__`.
 
 ### Added
 - Footer at the bottom of the screen showing the app version and Telegram contact `@augustmd`.
@@ -41,12 +41,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); versions are git
 - `doc/decisions.md` and this changelog.
 
 ### Removed
-- `nonita_webui/app.py` (Gradio UI), Gradio-specific helpers and tests.
+- `nonita/app.py` (Gradio UI), Gradio-specific helpers and tests.
 
 ## [0.1] — 2026-10-07
 ### Added
 - Shared host/port validation (`connection.py`): trims input, accepts full URLs, rejects ports outside 1–65535.
-- Browser-local connection settings (Save / Reset / Forget) stored in `localStorage` (`nonita-webui.settings.v1`).
+- Browser-local connection settings (Save / Reset / Forget) stored in `localStorage` (`nonita.settings.v1`).
 - Mobile layout (stacked rows, 44px touch targets, no horizontal scroll at 320px).
 - Upload size cap (`NONITA_MAX_UPLOAD_MB`, default 20), clearer PDF read errors, `OLLAMA_TIMEOUT`.
 - Automated tests and a README; project placed under git.

@@ -12,8 +12,8 @@ import tempfile
 from datetime import datetime, timezone
 from typing import Any
 
-from nonita_webui.client import content_to_text
-from nonita_webui.config import PROJECT_ROOT
+from nonita.client import content_to_text
+from nonita.config import PROJECT_ROOT
 
 DB_PATH = PROJECT_ROOT / "nonita_history.db"
 

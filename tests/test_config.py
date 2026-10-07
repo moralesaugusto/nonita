@@ -1,4 +1,4 @@
-from nonita_webui import config
+from nonita import config
 
 
 def test_env_port_invalid_falls_back(monkeypatch):

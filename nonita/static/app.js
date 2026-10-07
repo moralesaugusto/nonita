@@ -1,6 +1,6 @@
 "use strict";
 
-const SETTINGS_KEY = "nonita-webui.settings.v1";
+const SETTINGS_KEY = "nonita.settings.v1";
 const $ = (id) => document.getElementById(id);
 
 const state = {
@@ -339,13 +339,13 @@ function applyTheme(t) {
 }
 function initTheme() {
   let t = null;
-  try { t = localStorage.getItem("nonita-webui.theme"); } catch (e) {}
+  try { t = localStorage.getItem("nonita.theme"); } catch (e) {}
   if (t !== "light" && t !== "dark") t = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
   applyTheme(t);
   $("theme-toggle").onclick = () => {
     const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
     applyTheme(next);
-    try { localStorage.setItem("nonita-webui.theme", next); } catch (e) {}
+    try { localStorage.setItem("nonita.theme", next); } catch (e) {}
   };
 }
 

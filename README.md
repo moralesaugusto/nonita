@@ -1,12 +1,12 @@
 # Nonita Web UI
 
-Web frontend (FastAPI + plain HTML/JS) for a remote Ollama server. Current version: see `nonita_webui/__init__.py` (also shown at the bottom of the page). Contact: Telegram [@augustmd](https://t.me/augustmd).
+Web frontend (FastAPI + plain HTML/JS) for a remote Ollama server. Current version: see `nonita/__init__.py` (also shown at the bottom of the page). Contact: Telegram [@augustmd](https://t.me/augustmd).
 
 ## Run
 
 ```
 uv sync
-uv run nonita-webui
+uv run nonita
 ```
 Then open `http(s)://<host>:7860/`.
 

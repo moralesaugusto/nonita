@@ -8,11 +8,11 @@ from datetime import datetime, timezone
 from collections.abc import Iterator
 from typing import Any
 
-from nonita_webui.config import env_timeout
-from nonita_webui.connection import parse_connection
-from nonita_webui.client import OllamaClient, messages_to_ollama
-from nonita_webui.files import ingest_upload_paths, normalize_upload_paths
-from nonita_webui.metrics import (
+from nonita.config import env_timeout
+from nonita.connection import parse_connection
+from nonita.client import OllamaClient, messages_to_ollama
+from nonita.files import ingest_upload_paths, normalize_upload_paths
+from nonita.metrics import (
     ChatTurnMetrics,
     RequestDebugInfo,
     empty_metrics_display,
@@ -20,7 +20,7 @@ from nonita_webui.metrics import (
     format_live_metrics,
     format_metrics_summary,
 )
-from nonita_webui.search import format_search_context, web_search
+from nonita.search import format_search_context, web_search
 
 logger = logging.getLogger(__name__)
 
