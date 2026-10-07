@@ -11,3 +11,7 @@ exports/
 docs/improvementsv2.md
 *.pem
 *.db
+*.key
+.old-*
+.shred-*
+*.db.new

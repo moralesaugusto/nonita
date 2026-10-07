@@ -6,8 +6,8 @@ import argparse
 import json
 import logging
 import re
-import shutil
 import tempfile
+import time
 import uuid
 from pathlib import Path
 from typing import Any
@@ -45,6 +45,8 @@ from nonita.handlers import (
     unload_model,
 )
 from nonita.metrics import empty_metrics_display
+from nonita.secure_delete import shred_file, shred_tree
+from nonita.tls import MIN_TLS_VERSION
 
 logger = logging.getLogger(__name__)
 
@@ -85,8 +87,7 @@ async def security_headers(request, call_next):
     response = await call_next(request)
     for name, value in _SECURITY_HEADERS.items():
         response.headers.setdefault(name, value)
-    if request.url.scheme == "https":
-        response.headers.setdefault("Strict-Transport-Security", "max-age=31536000")
+    response.headers.setdefault("Strict-Transport-Security", "max-age=31536000")
     if request.url.path.startswith("/api/"):
         response.headers.setdefault("Cache-Control", "no-store")
     return response
@@ -164,7 +165,7 @@ class ExportReq(BaseModel):
 def _set_cookie(response: Response, request: Request, token: str) -> None:
     response.set_cookie(
         auth.COOKIE_NAME, token, max_age=auth.SESSION_SECONDS, httponly=True, samesite="strict",
-        secure=request.url.scheme == "https", path="/",
+        secure=True, path="/",
     )
 
 
@@ -291,7 +292,7 @@ async def upload(files: list[UploadFile] = File(...)) -> dict[str, Any]:
         name = Path(item.filename or "upload").name or "upload"
         upload_id = uuid.uuid4().hex
         folder = UPLOAD_DIR / upload_id
-        folder.mkdir(parents=True, exist_ok=True)
+        folder.mkdir(parents=True, exist_ok=True, mode=0o700)
         dest = folder / name
         size = 0
         too_big = False
@@ -303,13 +304,43 @@ async def upload(files: list[UploadFile] = File(...)) -> dict[str, Any]:
                     break
                 fh.write(chunk)
         if too_big:
-            shutil.rmtree(folder, ignore_errors=True)
+            shred_tree(folder)
             rejected.append(
                 {"name": name, "reason": f"over the {limit / 1_048_576:.0f} MB upload limit (NONITA_MAX_UPLOAD_MB)"}
             )
             continue
+        dest.chmod(0o600)
         saved.append({"id": upload_id, "name": name, "size": size})
     return {"files": saved, "rejected": rejected}
+
+
+def _delete_uploads(ids: list[str]) -> None:
+    """Remove uploaded files from disk (ids that are not ones we issued are ignored)."""
+    for upload_id in ids:
+        if _UPLOAD_ID.match(upload_id):
+            shred_tree(UPLOAD_DIR / upload_id)
+
+
+def purge_stale_uploads(max_age_seconds: float = 24 * 3600) -> None:
+    """Delete leftover upload folders older than *max_age_seconds* (e.g. after a crash)."""
+    if not UPLOAD_DIR.is_dir():
+        return
+    cutoff = time.time() - max_age_seconds
+    for folder in UPLOAD_DIR.iterdir():
+        try:
+            if folder.is_dir() and folder.stat().st_mtime < cutoff:
+                shred_tree(folder)
+        except OSError:
+            pass
+
+
+@app.delete("/api/upload/{upload_id}")
+def delete_upload(upload_id: str) -> dict[str, bool]:
+    if not _UPLOAD_ID.match(upload_id):
+        raise HTTPException(status_code=404, detail="Unknown upload.")
+    existed = (UPLOAD_DIR / upload_id).is_dir()
+    _delete_uploads([upload_id])
+    return {"deleted": existed}
 
 
 def _resolve_uploads(ids: list[str]) -> list[str]:
@@ -327,6 +358,13 @@ def _resolve_uploads(ids: list[str]) -> list[str]:
 @app.post("/api/chat")
 def chat(req: ChatReq) -> StreamingResponse:
     def gen():
+        try:
+            yield from _chat_events()
+        finally:
+            # Attachments are used for this one message only: remove them from disk even if the client aborts.
+            _delete_uploads(req.upload_ids)
+
+    def _chat_events():
         for event in stream_events(
             message=req.message,
             history=req.history,
@@ -392,7 +430,7 @@ def _txt_response(path: str | None) -> Response:
     try:
         body = p.read_bytes()
     finally:
-        p.unlink(missing_ok=True)
+        shred_file(p)
     return Response(
         body,
         media_type="text/plain; charset=utf-8",
@@ -429,21 +467,22 @@ app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 def serve() -> None:
     host = server_host()
     port = server_port()
-    ssl_kwargs = ssl_launch_kwargs()
+    ssl_kwargs = ssl_launch_kwargs()  # HTTPS only: there is no plain-HTTP mode
     logging.basicConfig(level=logging.INFO)
-    logger.info("Starting %s v%s on %s:%s (Ollama default host %s)", APP_TITLE, __version__, host, port, DEFAULT_HOST)
-    if ssl_kwargs:
-        logger.info("HTTPS enabled (elliptic-curve certificate %s)", ssl_kwargs["ssl_certfile"])
-    else:
-        logger.warning("HTTP mode, traffic and passwords are NOT encrypted. Run 'uv run nonita gen-cert' to enable HTTPS.")
-    uvicorn.run(app, host=host, port=port, log_level="info", **ssl_kwargs)
+    purge_stale_uploads()
+    logger.info("Starting %s v%s on https://%s:%s (TLS 1.3 only, certificate %s)", APP_TITLE, __version__, host, port, ssl_kwargs["ssl_certfile"])
+    config = uvicorn.Config(app, host=host, port=port, log_level="info", **ssl_kwargs)
+    config.load()
+    assert config.ssl is not None
+    config.ssl.minimum_version = MIN_TLS_VERSION  # refuse TLS 1.2 and older
+    uvicorn.Server(config).run()
 
 
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(prog="nonita", description=APP_TITLE)
     sub = parser.add_subparsers(dest="command")
     sub.add_parser("serve", help="start the web UI (default)")
-    gen = sub.add_parser("gen-cert", help="generate a self-signed ECDSA P-384 certificate and key")
+    gen = sub.add_parser("gen-cert", help="generate a self-signed ECDSA P-384 certificate and key (also done automatically on first start)")
     gen.add_argument("--san", action="append", default=[], metavar="NAME", help="extra DNS name or IP address (repeatable)")
     gen.add_argument("--days", type=int, default=365)
     gen.add_argument("--force", action="store_true", help="overwrite an existing certificate/key")

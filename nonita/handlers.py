@@ -232,7 +232,7 @@ def stream_events(
         search_result_count = len(results)
         search_ctx = format_search_context(msg_text, results)
         # Only the count is reported to the UI — never the results themselves.
-        yield {"type": "search", "count": search_result_count}
+        yield {"type": "search", "count": search_result_count, **({"query": msg_text} if not search_result_count else {})}
 
     sys_text = _text(system_prompt).strip()
     messages: list[dict[str, str]] = []

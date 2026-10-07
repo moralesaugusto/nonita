@@ -114,15 +114,18 @@ def cert_paths() -> tuple[Path, Path]:
 
 
 def ssl_launch_kwargs() -> dict[str, str]:
-    """HTTPS uvicorn kwargs when the certificate and key exist.
+    """uvicorn kwargs for HTTPS. The web UI is HTTPS-only (TLS 1.3, elliptic-curve key, no RSA).
 
-    Only elliptic-curve keys are accepted (RSA is refused) and the cipher list is
-    limited to ECDHE with AES-GCM / ChaCha20-Poly1305 (TLS 1.3 suites are always on).
+    If neither file exists a self-signed ECDSA P-384 certificate is generated; if only one exists, refuse to start.
     """
-    from nonita.tls import STRONG_CIPHERS, require_ec_key
+    from nonita.tls import generate_self_signed, require_ec_key
 
     cert, key = cert_paths()
-    if not (cert.is_file() and key.is_file()):
-        return {}
+    if cert.is_file() != key.is_file():
+        raise SystemExit(f"Found only one of {cert} / {key}. Provide both, or delete it to generate a new pair.")
+    if not cert.is_file():
+        generate_self_signed(cert, key)
+        print(f"No certificate found: generated a self-signed ECDSA P-384 pair ({cert}, {key}). "
+              "Run 'uv run nonita gen-cert --force --san <name-or-ip>' to add the names you browse to.")
     require_ec_key(key)
-    return {"ssl_certfile": str(cert), "ssl_keyfile": str(key), "ssl_ciphers": STRONG_CIPHERS}
+    return {"ssl_certfile": str(cert), "ssl_keyfile": str(key)}

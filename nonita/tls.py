@@ -6,6 +6,7 @@ import datetime as dt
 import ipaddress
 import os
 import socket
+import ssl
 from pathlib import Path
 
 from cryptography import x509
@@ -13,8 +14,8 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.x509.oid import NameOID
 
-# ECDHE key exchange (forward secrecy) with AEAD ciphers only. TLS 1.3 suites are not affected by this string.
-STRONG_CIPHERS = "ECDHE+AESGCM:ECDHE+CHACHA20"
+# The web UI accepts TLS 1.3 only (all its cipher suites are AEAD with forward secrecy).
+MIN_TLS_VERSION = ssl.TLSVersion.TLSv1_3
 
 
 def require_ec_key(key_path: Path) -> None:

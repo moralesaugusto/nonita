@@ -17,7 +17,7 @@ def client(tmp_path, monkeypatch, request):
     monkeypatch.setattr(auth, "DB_PATH", tmp_path / "auth.db")
     monkeypatch.setattr(auth, "_SCRYPT_N", 2**10)  # fast hashing in tests
     monkeypatch.setattr(auth, "_fails", {})
-    c = TestClient(server.app)
+    c = TestClient(server.app, base_url="https://testserver")
     if getattr(request, "param", "login") != "anon":
         r = c.post("/api/auth/login", json={"username": "admin", "password": "admin"})
         assert r.json()["must_change"] is True
@@ -133,7 +133,7 @@ def anon(tmp_path, monkeypatch):
     monkeypatch.setattr(auth, "DB_PATH", tmp_path / "auth.db")
     monkeypatch.setattr(auth, "_SCRYPT_N", 2**10)
     monkeypatch.setattr(auth, "_fails", {})
-    return TestClient(server.app)
+    return TestClient(server.app, base_url="https://testserver")
 
 
 def test_api_requires_login_but_static_and_meta_do_not(anon):
@@ -170,7 +170,7 @@ def test_default_admin_must_change_password_first(anon):
 def test_password_change_revokes_other_sessions(anon, tmp_path):
     anon.post("/api/auth/login", json={"username": "admin", "password": "admin"})
     anon.post("/api/auth/password", json={"current_password": "admin", "new_password": "first-passphrase"})
-    other = TestClient(server.app)
+    other = TestClient(server.app, base_url="https://testserver")
     other.post("/api/auth/login", json={"username": "admin", "password": "first-passphrase"})
     assert other.get("/api/config").status_code == 200
     anon.post("/api/auth/password", json={"current_password": "first-passphrase", "new_password": "second-passphrase"})
@@ -193,3 +193,35 @@ def test_password_is_hashed_at_rest(anon, tmp_path):
     anon.post("/api/auth/login", json={"username": "admin", "password": "admin"})
     raw = (tmp_path / "auth.db").read_bytes()
     assert b"scrypt$" in raw
+
+
+# ── privacy: uploads and file permissions ─────────────────────────────────
+def test_uploads_are_private_and_deleted_after_the_chat_turn(client, monkeypatch):
+    monkeypatch.setattr(OllamaClient, "stream_chat", lambda self, **kw: iter([ChatStreamEvent(done=True, stats={})]))
+    up = client.post("/api/upload", files=[("files", ("s.txt", b"secret"))]).json()["files"][0]
+    folder = server.UPLOAD_DIR / up["id"]
+    assert folder.stat().st_mode & 0o777 == 0o700 and (folder / "s.txt").stat().st_mode & 0o777 == 0o600
+    _chat(client, upload_ids=[up["id"]])
+    assert not folder.exists()
+
+
+def test_delete_upload_endpoint(client):
+    up = client.post("/api/upload", files=[("files", ("s.txt", b"x"))]).json()["files"][0]
+    assert client.delete(f"/api/upload/{up['id']}").json() == {"deleted": True}
+    assert not (server.UPLOAD_DIR / up["id"]).exists()
+    assert client.delete("/api/upload/not-an-id").status_code == 404
+
+
+def test_purge_stale_uploads(client):
+    import os, time
+    old = client.post("/api/upload", files=[("files", ("a.txt", b"x"))]).json()["files"][0]["id"]
+    new = client.post("/api/upload", files=[("files", ("b.txt", b"x"))]).json()["files"][0]["id"]
+    t = time.time() - 48 * 3600
+    os.utime(server.UPLOAD_DIR / old, (t, t))
+    server.purge_stale_uploads()
+    assert not (server.UPLOAD_DIR / old).exists() and (server.UPLOAD_DIR / new).exists()
+
+
+def test_history_db_is_owner_only(client):
+    client.post("/api/sessions", json={"model": "m", "messages": [{"role": "user", "content": "hi"}]})
+    assert history.DB_PATH.stat().st_mode & 0o777 == 0o600

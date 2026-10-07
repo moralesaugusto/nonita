@@ -319,6 +319,8 @@ async function send() {
     search_enabled: $("search-enabled").checked, search_max_results: Number($("search-max").value),
     think_mode: think,
   };
+  // The server deletes attachments after this message, so they apply to this message only.
+  state.uploads = []; $("file-input").value = ""; renderAttachments();
   state.controller = new AbortController();
   setBusy(true);
   const started = performance.now();
@@ -341,6 +343,7 @@ async function send() {
           ? `Web search: ${ev.count} result${ev.count === 1 ? "" : "s"} used`
           : "Web search returned no results (rate-limited, timed out or offline) — answered without it";
         reply.searchEmpty = ev.count === 0;
+        if (ev.count === 0) reply.searchQuery = ev.query;  // kept with the saved chat; erased by Delete / Wipe
       } else if (ev.type === "thinking") {
         if (thinkStart === null) thinkStart = performance.now();
         reply.thinking = (reply.thinking || "") + ev.text;
@@ -455,7 +458,9 @@ async function startApp() {
   $("msg").addEventListener("input", autosize);
   $("btn-clear").onclick = newConversation;
   $("btn-new").onclick = newConversation;
-  $("btn-clear-files").onclick = () => { state.uploads = []; $("file-input").value = ""; renderAttachments(); };
+  $("btn-clear-files").onclick = () => {
+    for (const u of state.uploads) fetch("/api/upload/" + u.id, { method: "DELETE" }).catch(() => {});
+    state.uploads = []; $("file-input").value = ""; renderAttachments(); };
   $("btn-example").onclick = () => { $("msg").value = "Summarize the attached files in three bullet points, then suggest logical next steps."; autosize(); $("msg").focus(); };
   $("file-input").onchange = (e) => uploadFiles([...e.target.files]);
 

@@ -51,7 +51,7 @@ def web_search(query: str, max_results: int = 5) -> list[SearchResult]:
         future = pool.submit(_run_search, query, max_results)
         raw = future.result(timeout=HARD_TIMEOUT_SECONDS)
     except FutureTimeoutError:
-        logger.warning("DuckDuckGo search timed out after %ss for query: %r", HARD_TIMEOUT_SECONDS, query)
+        logger.warning("DuckDuckGo search timed out after %ss (query of %d characters not logged)", HARD_TIMEOUT_SECONDS, len(query))
         return []
     except DDGSException as exc:
         logger.warning("DuckDuckGo search failed: %s", exc)

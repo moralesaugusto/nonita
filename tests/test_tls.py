@@ -27,10 +27,32 @@ def test_rsa_key_is_refused(tmp_path):
         tls.require_ec_key(k)
 
 
-def test_ssl_kwargs_use_strong_ciphers(tmp_path, monkeypatch):
+def test_https_is_mandatory_and_generates_ec_cert_when_missing(tmp_path, monkeypatch, capsys):
     monkeypatch.setenv("NONITA_CERT", str(tmp_path / "c.pem"))
     monkeypatch.setenv("NONITA_KEY", str(tmp_path / "k.pem"))
-    assert config.ssl_launch_kwargs() == {}
-    tls.generate_self_signed(tmp_path / "c.pem", tmp_path / "k.pem")
-    kw = config.ssl_launch_kwargs()
-    assert kw["ssl_ciphers"] == tls.STRONG_CIPHERS and "RSA" not in kw["ssl_ciphers"]
+    kw = config.ssl_launch_kwargs()           # no certificate yet: one is generated, never plain HTTP
+    assert set(kw) == {"ssl_certfile", "ssl_keyfile"} and "generated" in capsys.readouterr().out
+    tls.require_ec_key(tmp_path / "k.pem")
+    assert config.ssl_launch_kwargs() == kw   # reused on the next start
+
+
+def test_half_a_certificate_pair_is_refused(tmp_path, monkeypatch):
+    monkeypatch.setenv("NONITA_CERT", str(tmp_path / "c.pem"))
+    monkeypatch.setenv("NONITA_KEY", str(tmp_path / "k.pem"))
+    (tmp_path / "c.pem").write_text("x")
+    with pytest.raises(SystemExit, match="only one"):
+        config.ssl_launch_kwargs()
+
+
+def test_minimum_tls_version_is_1_3():
+    import ssl
+    assert tls.MIN_TLS_VERSION == ssl.TLSVersion.TLSv1_3
+
+
+def test_session_cookie_is_always_secure(tmp_path, monkeypatch):
+    from fastapi.testclient import TestClient
+    from nonita import auth, server
+    monkeypatch.setattr(auth, "DB_PATH", tmp_path / "a.db")
+    monkeypatch.setattr(auth, "_SCRYPT_N", 2**10)
+    r = TestClient(server.app, base_url="http://testserver").post("/api/auth/login", json={"username": "admin", "password": "admin"})
+    assert "secure" in r.headers["set-cookie"].lower() and "strict-transport-security" in r.headers

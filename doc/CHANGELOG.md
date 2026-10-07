@@ -2,6 +2,17 @@
 
 Format follows [Keep a Changelog](https://keepachangelog.com/); versions are git tags.
 
+## [Unreleased]
+### Added
+- **Project is now explicitly privacy-based.** README gains a "Privacy by design" section and `docs/privacy.md` documents a source-level privacy review: no telemetry or external scripts, local-by-default, opt-in storage. Remaining known gap it lists: web search sends the full message to DuckDuckGo when enabled (and a timed-out query is logged locally).
+
+### Changed
+- **Web UI is HTTPS-only and TLS 1.3-only.** The plain-HTTP mode and TLS 1.2 are gone; session cookies are always `Secure` and HSTS is always sent. If no certificate exists, a self-signed ECDSA P-384 pair is generated on first start; a lone cert or key file stops startup. RSA keys are still refused. The Nonita-to-Ollama connection is unchanged.
+- **Secure deletion based on NIST SP 800-88 Rev.1.** Saved conversations (titles, messages) are now **encrypted at rest** with AES-256-GCM under a separate `nonita_history.key` file. **Delete** rebuilds the database without the conversation under a new key and shreds the old database and key; **Wipe** shreds the database and key (Purge via cryptographic erase). Files that were deleted (old database, exported `.txt` temp files, attachments) are overwritten in place (Clear: verified `fsync`ed pass, `NONITA_SHRED_PASSES`, default 1), renamed and unlinked. `PRAGMA secure_delete` is on. Existing plaintext databases are migrated automatically and the plaintext file is shredded.
+- A search that returns nothing now keeps its query with the saved conversation (so Delete/Wipe erase it), and the query text is no longer written to the console log.
+- Attachments are private (folder 0700, files 0600) and are deleted from disk right after the chat message that used them, or when **Clear files** is pressed (new `DELETE /api/upload/{id}`); the attachment list in the UI now empties after sending. Leftover upload folders older than 24 h are purged at startup.
+- `nonita_history.db` is now restricted to owner-only (0600).
+
 ## [0.4.0] — 2026-10-07
 ### Added
 - **Authentication:** local accounts in `nonita_auth.db` (scrypt hashes), HttpOnly/SameSite=Strict session cookies, login throttle, same-origin check on writes. All `/api/*` except login/meta require a session.
