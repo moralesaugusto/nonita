@@ -6,6 +6,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); versions are git
 ### Changed
 - **Renamed Toty → Nonita.** Package `toty_webui` is now `nonita`, the distribution/command `toty-webui` is now `nonita`.
 - Env vars `TOTY_*` are now `NONITA_*`; `toty_history.db` and `toty_conversation*` files are now `nonita_*`; browser storage keys `toty-webui.*` are now `nonita.*` (saved theme/settings reset once). Rename existing `.env` entries and the history DB to keep them.
+- **Theme changed from watermelon to noni** (*Morinda citrifolia*, the fruit Nonita is named after): glossy leaf-green primary (`#2f6b3a`), seed-brown accents (`#8a5a22`), cream-green backgrounds, matching dark theme, and a new favicon/brand icon (lumpy pale-green fruit with seed-dotted "eyes" and a leaf). CSS variables `--rind*` renamed `--skin*`.
 - Project is run with uv only (`uv sync`, `uv run nonita`); `nonita.sh` fixed to do this.
 
 ## [0.3.1] — 2026-10-07

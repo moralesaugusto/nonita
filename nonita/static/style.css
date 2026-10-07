@@ -1,26 +1,26 @@
-/* Nonita Web UI — watermelon theme: rind green, flesh red, seed black, cream. */
+/* Nonita Web UI — noni (Morinda citrifolia) theme: glossy leaf green, ripe-fruit cream, seed brown. */
 
 :root {
   color-scheme: light;
-  --bg: #fbf6f3;
+  --bg: #f6f7ee;
   --surface: #ffffff;
-  --surface-2: #f6efeb;
-  --border: #e5d8d2;
-  --border-strong: #cdbbb3;
-  --text: #1d2a23;
-  --muted: #5b6962;
-  --primary: #d62839;          /* watermelon flesh */
-  --primary-hover: #b81f2e;
+  --surface-2: #eceee0;
+  --border: #d9dcc3;
+  --border-strong: #b9bf9a;
+  --text: #1f2a1c;
+  --muted: #5d6755;
+  --primary: #2f6b3a;          /* noni leaf green */
+  --primary-hover: #245530;
   --on-primary: #ffffff;
-  --primary-soft: #fde6e9;
-  --rind: #1f7a4d;             /* rind green */
-  --rind-soft: #e1f3e8;
+  --primary-soft: #e0eed8;
+  --skin: #8a5a22;             /* noni seed brown */
+  --skin-soft: #f3ead6;
   --danger: #b3261e;
   --danger-soft: #fdeceb;
-  --ok: #1f7a4d;
+  --ok: #2f6b3a;
   --warn: #b26a00;
-  --code-bg: #f3ece8;
-  --shadow: 0 1px 2px rgba(60, 20, 20, .06), 0 4px 14px rgba(60, 20, 20, .06);
+  --code-bg: #eef0e3;
+  --shadow: 0 1px 2px rgba(30, 50, 20, .06), 0 4px 14px rgba(30, 50, 20, .06);
   --radius: 10px;
   --font: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
@@ -29,24 +29,24 @@
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #111815;
-  --surface: #19211d;
-  --surface-2: #202a25;
-  --border: #2d3a34;
-  --border-strong: #41524a;
-  --text: #e8f0ea;
-  --muted: #9fb1a6;
-  --primary: #ff6b7d;
-  --primary-hover: #ff8794;
-  --on-primary: #2a0910;
-  --primary-soft: #3a1b22;
-  --rind: #52c68d;
-  --rind-soft: #1b3329;
+  --bg: #12170f;
+  --surface: #1a2116;
+  --surface-2: #222b1d;
+  --border: #323d2b;
+  --border-strong: #495839;
+  --text: #eef2e4;
+  --muted: #a8b59a;
+  --primary: #8fd19a;
+  --primary-hover: #a8e0b1;
+  --on-primary: #0d2412;
+  --primary-soft: #1f3a24;
+  --skin: #dcb77c;
+  --skin-soft: #372c18;
   --danger: #ff8a80;
   --danger-soft: #3a1d1b;
   --ok: #52c68d;
   --warn: #f0b24a;
-  --code-bg: #0f1512;
+  --code-bg: #0e120b;
   --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 4px 14px rgba(0, 0, 0, .3);
 }
 
@@ -57,7 +57,7 @@ body {
   font-family: var(--font); font-size: 15px; line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
-a { color: var(--rind); text-underline-offset: 2px; }
+a { color: var(--skin); text-underline-offset: 2px; }
 a:hover { color: var(--primary); }
 .skip { position: absolute; left: -999px; top: 0; background: var(--primary); color: var(--on-primary); padding: 8px 14px; z-index: 100; border-radius: 0 0 8px 0; }
 .skip:focus { left: 0; }
@@ -69,7 +69,7 @@ a:hover { color: var(--primary); }
 #app-header {
   display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 20px;
   background: var(--surface); border-bottom: 1px solid var(--border);
-  box-shadow: inset 0 -3px 0 var(--rind);
+  box-shadow: inset 0 -3px 0 var(--skin);
 }
 .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .brand-text { display: flex; flex-direction: column; line-height: 1.15; }
@@ -84,7 +84,7 @@ a:hover { color: var(--primary); }
 }
 .badge .badge-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .badge .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--border-strong); flex: none; }
-.badge.ok { color: var(--ok); background: var(--rind-soft); border-color: transparent; }
+.badge.ok { color: var(--ok); background: var(--primary-soft); border-color: transparent; }
 .badge.ok .dot { background: var(--ok); }
 .badge.bad { color: var(--danger); background: var(--danger-soft); border-color: transparent; }
 .badge.bad .dot { background: var(--danger); }
@@ -162,7 +162,7 @@ small, .hint, .note { color: var(--muted); font-size: 12.5px; }
 .card > summary::-webkit-details-marker, .danger-zone > summary::-webkit-details-marker { display: none; }
 .card > summary::after { content: ""; margin-left: auto; width: 8px; height: 8px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(45deg); transition: transform .15s; }
 .card[open] > summary::after { transform: rotate(-135deg); }
-.card > summary .i { color: var(--rind); }
+.card > summary .i { color: var(--skin); }
 .card-body { padding: 2px 14px 14px; display: flex; flex-direction: column; gap: 8px; border-top: 1px solid var(--border); padding-top: 10px; }
 .card-body .field { margin: 4px 0; }
 .danger-zone { padding: 0; box-shadow: none; background: transparent; }
@@ -194,9 +194,9 @@ small, .hint, .note { color: var(--muted); font-size: 12.5px; }
 .msg.user { align-self: flex-end; align-items: flex-end; }
 .msg.user .bubble { background: var(--primary-soft); border-color: transparent; border-bottom-right-radius: 4px; }
 .msg.assistant .bubble { border-bottom-left-radius: 4px; }
-.msg.assistant .who { color: var(--rind); }
+.msg.assistant .who { color: var(--skin); }
 .msg.error .bubble { background: var(--danger-soft); border-color: var(--danger); }
-.msg .search-note { font-size: 12px; color: var(--rind); padding-left: 4px; font-weight: 600; }
+.msg .search-note { font-size: 12px; color: var(--skin); padding-left: 4px; font-weight: 600; }
 .msg .search-note.warn { color: var(--warn); }
 .msg .footer { font-size: 12px; color: var(--muted); padding-left: 4px; }
 details.thought { border: 1px dashed var(--border-strong); border-radius: 8px; padding: 6px 10px; margin-bottom: 8px; color: var(--muted); font-size: 13.5px; }
@@ -208,7 +208,7 @@ details.thought > summary { cursor: pointer; font-weight: 600; }
 .md table { border-collapse: collapse; display: block; overflow-x: auto; }
 .md th, .md td { border: 1px solid var(--border); padding: 4px 8px; }
 .md ul, .md ol { padding-left: 1.4em; margin: .4em 0; }
-.md blockquote { border-left: 3px solid var(--rind); margin: .5em 0; padding-left: 12px; color: var(--muted); }
+.md blockquote { border-left: 3px solid var(--skin); margin: .5em 0; padding-left: 12px; color: var(--muted); }
 .md h1, .md h2, .md h3, .md h4 { margin: .8em 0 .3em; line-height: 1.25; }
 .md hr { border: 0; border-top: 1px solid var(--border); }
 .info { background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; font-size: 13px; overflow-wrap: anywhere; max-height: 360px; overflow-y: auto; }

@@ -40,3 +40,10 @@
 | Layout | App frame fills the viewport; chat scrolls internally so the composer never leaves the screen; side panels scroll independently | Fixes the v0.2 page overflowing the screen |
 | Security headers | CSP `default-src 'self'` (no inline scripts; inline styles allowed only for markdown output), nosniff, frame deny, no-referrer | Reasonable enterprise baseline for a LAN tool; authentication remains intentionally out of scope |
 | Accessibility | Semantic landmarks, labels, live regions, focus-visible, reduced motion | Enterprise/WCAG expectations |
+
+## Unreleased — noni theme
+
+| Area | Decision | Reason |
+|---|---|---|
+| Palette | Leaf green `#2f6b3a` (primary actions), seed brown `#8a5a22` (accents, assistant label), dark green-tinted text, cream-green background; dark theme uses `#8fd19a` / `#dcb77c` on deep green-black | Noni (*Morinda citrifolia*): glossy dark leaves, pale ripe fruit, brown seeds; replaces the watermelon palette, AA contrast kept |
+| Icon | `static/favicon.svg`: lumpy oval pale-green fruit with polygonal seed-dotted "eyes" and a leaf | Recognisable noni shape; used in header and as favicon |
