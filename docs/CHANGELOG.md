@@ -59,9 +59,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/); versions are git
 
 ### Added
 - Footer at the bottom of the screen showing the app version and Telegram contact `@augustmd`.
-- `GET /api/meta`, `POST /api/validate-connection` and the rest of the JSON API (see `doc/decisions.md`).
+- `GET /api/meta`, `POST /api/validate-connection` and the rest of the JSON API (see `docs/decisions.md`).
 - Vendored `marked` and `DOMPurify` for offline, sanitised markdown rendering.
-- `doc/decisions.md` and this changelog.
+- `docs/decisions.md` and this changelog.
 
 ### Removed
 - `nonita/app.py` (Gradio UI), Gradio-specific helpers and tests.

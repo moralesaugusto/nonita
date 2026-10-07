@@ -126,7 +126,7 @@ What this cannot do: erase **backups, snapshots, swap, or copies you made yourse
 uv run --extra dev pytest
 ```
 
-Design notes: [`doc/decisions.md`](doc/decisions.md). Changes: [`doc/CHANGELOG.md`](doc/CHANGELOG.md).
+Design notes: [`docs/decisions.md`](docs/decisions.md). Changes: [`docs/CHANGELOG.md`](docs/CHANGELOG.md).
 
 ## License
 
