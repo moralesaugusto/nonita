@@ -28,7 +28,7 @@ def client(tmp_path, monkeypatch, request):
 
 def test_meta_has_version_and_telegram(client):
     r = client.get("/api/meta").json()
-    assert r["version"] == __version__ == "0.4.0"
+    assert r["version"] == __version__ == "0.4.1"
     assert r["telegram"] == "@augustmd" and r["telegram_url"] == "https://t.me/augustmd"
 
 

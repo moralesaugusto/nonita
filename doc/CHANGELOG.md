@@ -2,7 +2,7 @@
 
 Format follows [Keep a Changelog](https://keepachangelog.com/); versions are git tags.
 
-## [Unreleased]
+## [0.4.1] — 2026-10-07
 ### Added
 - **Project is now explicitly privacy-based.** README gains a "Privacy by design" section and `docs/privacy.md` documents a source-level privacy review: no telemetry or external scripts, local-by-default, opt-in storage. Remaining known gap it lists: web search sends the full message to DuckDuckGo when enabled (and a timed-out query is logged locally).
 
