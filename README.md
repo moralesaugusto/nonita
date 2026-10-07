@@ -130,4 +130,4 @@ Design notes: [`doc/decisions.md`](doc/decisions.md). Changes: [`doc/CHANGELOG.m
 
 ## License
 
-[MIT](LICENSE) © 2026 AM. Contact: Telegram [@augustmd](https://t.me/augustmd).
+[MIT](LICENSE) © 2026 Augusto Morales. Contact: Telegram [@augustmd](https://t.me/augustmd).
